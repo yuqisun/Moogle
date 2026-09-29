@@ -13,8 +13,9 @@ moogle/
 ├── video_locator.py              # Core: text -> timestamp + BM25 search
 ├── static_server.py              # Static file server with HTTP Range support (port 8502)
 ├── smoke_test.py                 # AppTest headless regression test
-├── run.ps1                       # Windows one-click launcher (Streamlit + static server)
-├── run.sh                        # Linux/macOS one-click launcher (Streamlit + static server)
+├── run.ps1                       # Windows PowerShell one-click launcher
+├── run.bat                       # Windows CMD one-click launcher
+├── run.sh                        # Linux/macOS one-click launcher
 ├── .env                          # Configuration (LLM, search params, Neo4j)
 ├── .env.example                  # Configuration template
 ├── requirements.txt              # Python dependencies
@@ -58,6 +59,8 @@ cp .env.example .env
 
 ### Windows
 
+**PowerShell:**
+
 ```powershell
 cd D:\workspace\moogle
 
@@ -69,6 +72,22 @@ cd D:\workspace\moogle
 .venv\Scripts\python.exe static_server.py 8502 --bind 127.0.0.1 --directory static
 
 # Terminal 2 - Streamlit chat (port 8501)
+.venv\Scripts\streamlit.exe run streamlit_app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true
+```
+
+**CMD:**
+
+```cmd
+cd /d D:\workspace\moogle
+
+:: One-click launch (recommended)
+run.bat
+
+:: Or start separately:
+:: Terminal 1 - Static file server with Range support (port 8502)
+.venv\Scripts\python.exe static_server.py 8502 --bind 127.0.0.1 --directory static
+
+:: Terminal 2 - Streamlit chat (port 8501)
 .venv\Scripts\streamlit.exe run streamlit_app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true
 ```
 
