@@ -11,8 +11,10 @@ to the relevant moment in the video player.
 moogle/
 ├── streamlit_app.py              # Streamlit chat frontend (port 8501)
 ├── video_locator.py              # Core: text -> timestamp + BM25 search
+├── static_server.py              # Static file server with HTTP Range support (port 8502)
 ├── smoke_test.py                 # AppTest headless regression test
-├── run.ps1                       # One-click launcher (Streamlit + static server)
+├── run.ps1                       # Windows one-click launcher (Streamlit + static server)
+├── run.sh                        # Linux/macOS one-click launcher (Streamlit + static server)
 ├── .env                          # Configuration (LLM, search params, Neo4j)
 ├── .env.example                  # Configuration template
 ├── requirements.txt              # Python dependencies
@@ -37,6 +39,25 @@ moogle/
 
 ## Quick Start
 
+### Prerequisites
+
+```bash
+# Create virtual environment and install dependencies
+python -m venv .venv
+
+# Windows
+.venv\Scripts\pip install -r requirements.txt
+
+# Linux / macOS
+.venv/bin/pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env — set LLM_API_KEY for AI-powered responses (optional)
+```
+
+### Windows
+
 ```powershell
 cd D:\workspace\moogle
 
@@ -44,15 +65,46 @@ cd D:\workspace\moogle
 .\run.ps1
 
 # Or start separately:
-# Terminal 1 - Static file server (video player, port 8502)
-.venv\Scripts\python.exe -m http.server 8502 --bind 127.0.0.1 --directory static
+# Terminal 1 - Static file server with Range support (port 8502)
+.venv\Scripts\python.exe static_server.py 8502 --bind 127.0.0.1 --directory static
 
 # Terminal 2 - Streamlit chat (port 8501)
-.venv\Scripts\streamlit.exe run streamlit_app.py
+.venv\Scripts\streamlit.exe run streamlit_app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true
 ```
 
 Open **http://127.0.0.1:8501** for the chat interface.
-Video player pages open at **http://127.0.0.1:8502/player/player.html?src=...&t=...**
+
+### Linux / macOS
+
+```bash
+cd /path/to/moogle
+
+# Local access only (default)
+./run.sh
+
+# Allow remote access (bind all interfaces)
+./run.sh --host 0.0.0.0
+
+# Custom ports
+./run.sh --host 0.0.0.0 --streamlit-port 8080 --static-port 8081
+
+# Run in background
+nohup ./run.sh --host 0.0.0.0 > moogle.log 2>&1 &
+
+# Or start separately:
+# Terminal 1 - Static file server with Range support (port 8502)
+.venv/bin/python static_server.py 8502 --bind 0.0.0.0 --directory static
+
+# Terminal 2 - Streamlit chat (port 8501)
+.venv/bin/streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+```
+
+Open **http://\<server-ip\>:8501** for the chat interface.
+
+> **Note:** `run.sh` / `run.ps1` automatically detect port conflicts before starting.
+> If a port is already in use, the script will report the occupying process and exit.
+
+Video player pages open at **http://\<host\>:8502/player/player.html?src=...&t=...**
 
 ## Tools Usage
 
