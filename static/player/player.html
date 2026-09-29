@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Moogle - Video Player</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/hero-slider-style.css">
+    <link rel="stylesheet" href="css/magnific-popup.css">
+    <link rel="stylesheet" href="css/moogle-style.css">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        /* Only the video player element needs custom styling */
+        .tm-player-video {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            display: block;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: #000;
+        }
+        .tm-player-info {
+            margin-top: 15px;
+            color: #ccc;
+            font-size: 0.95em;
+            line-height: 1.7;
+        }
+        .tm-player-actions {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .tm-btn-replay {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: #856729;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tm-btn-replay:hover { background: #a07d35; }
+        .tm-btn-replay svg { width: 16px; height: 16px; fill: #fff; }
+        .tm-btn-teams {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: #5558AF;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+        .tm-btn-teams:hover { background: #464b9e; color: #fff; }
+        .tm-btn-teams svg { width: 18px; height: 18px; }
+        .tm-cited-text {
+            margin-top: 10px;
+            color: #ccc;
+            font-size: 0.92em;
+            line-height: 1.6;
+        }
+        .tm-cited-text strong { color: #f0c040; }
+        .tm-cited-text em { color: #ddd; }
+
+        /* About page fixes */
+        .tm-flex { flex-wrap: wrap; }
+        .tm-flex > [class*="col-"] { overflow: hidden; }
+        #aboutContent ul { color: #fff; }
+        #aboutContent ul li { margin-bottom: 6px; }
+        #aboutContent .tm-bg-brown,
+        #aboutContent .tm-bg-dark-brown,
+        #aboutContent .tm-bg-dark-blue {
+            overflow: hidden;
+            word-wrap: break-word;
+        }
+
+        /* Fix: hidden slides must not intercept mouse events (blocks video controls) */
+        .cd-hero-slider li { pointer-events: none; }
+        .cd-hero-slider li.selected { pointer-events: auto; }
+
+        /* Ensure preloader doesn't block clicks after loading */
+        .loaded #loader-wrapper { pointer-events: none; }
+
+        /* Center the player page vertically in the viewport */
+        .cd-hero-slider li:first-of-type .cd-full-width {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tm-page-1.tm-section-margin-t-small {
+            margin-top: 0;
+        }
+    </style>
+</head>
+
+    <body>
+
+        <div class="cd-bg-video-wrapper" data-video="video/bangkok-city">
+        </div>
+
+        <div class="cd-hero">
+
+            <!-- Navigation -->
+            <div class="cd-slider-nav">
+                <div class="container">
+                    <nav class="navbar">
+                        <div class="tm-navbar-bg">
+                            <a class="navbar-brand text-uppercase" href="#">Moogle</a>
+                            <button class="navbar-toggler hidden-lg-up" type="button" data-toggle="collapse" data-target="#tmNavbar">
+                                &#9776;
+                            </button>
+                            <div class="collapse navbar-toggleable-md text-xs-center text-uppercase tm-navbar" id="tmNavbar">
+                                <ul class="nav navbar-nav">
+                                    <li class="nav-item active selected">
+                                        <a class="nav-link" href="#0" data-no="1">Player <span class="sr-only">(current)</span></a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#0" data-no="2">About</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#0" data-no="3">Knowledge Graph</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+
+            <ul class="cd-hero-slider">
+
+                <!-- Page 1: Video Player (uses original Big City layout structure) -->
+                <li class="selected">
+                    <div class="cd-full-width">
+                        <div class="container js-tm-page-content tm-page-1 tm-section-margin-t-small" data-page-no="1">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <div class="tm-home-container-outer">
+                                        <div class="tm-home-container">
+                                            <div class="tm-home-title-container">
+                                                <h2 class="tm-text-title text-xs-center tm-home-title" id="playerTitle">Moogle Video Player</h2>
+                                            </div>
+                                            <div class="tm-home-description-container tm-bg-dark-blue">
+                                                <div class="text-xs-left tm-textbox">
+                                                    <video id="moogleVideo" class="tm-player-video" controls preload="metadata" controlsList="nodownload">
+                                                        <track id="subtitleTrack" kind="subtitles" label="English" srclang="en" default>
+                                                        Your browser does not support the video tag.
+                                                    </video>
+                                                    <div class="tm-player-info" id="playerInfo">Loading video...</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="tm-home-container-bg"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+                <!-- Page 2: About (dynamically populated from analysis JSON) -->
+                <li>
+                    <div class="cd-full-width">
+                        <div class="container js-tm-page-content tm-section-margin-t" data-page-no="2">
+                            <div id="aboutLoading" style="text-align:center; padding: 60px 0; color: #ccc;">
+                                Loading analysis...
+                            </div>
+                            <div id="aboutContent" style="display:none;">
+
+                                <!-- Row 1: Summary (full width) -->
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="tm-white-header-container-outer tm-margin-b">
+                                            <div class="tm-bg-white tm-white-header-container">
+                                                <h2 class="tm-text-title tm-text-title-small">Summary</h2>
+                                            </div>
+                                            <div class="tm-bg-dark-blue text-xs-left tm-textbox tm-textbox-padding tm-white-header-body tm-white-border">
+                                                <p class="tm-text" id="aboutSummary"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Row 2: Speaker + Audience (side by side) -->
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="tm-flex">
+                                            <div class="col-lg-6 tm-white-header-container-outer tm-margin-b tm-2-col-left">
+                                                <div class="tm-bg-white tm-white-header-container">
+                                                    <h2 class="tm-text-title tm-text-title-small">Speaker</h2>
+                                                </div>
+                                                <div class="tm-bg-dark-blue text-xs-left tm-textbox tm-textbox-padding tm-white-header-body tm-white-border tm-2-col-equal-height">
+                                                    <p class="tm-text"><strong id="aboutSpeakerName"></strong></p>
+                                                    <p class="tm-text" id="aboutSpeakerBio"></p>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 tm-white-header-container-outer tm-margin-b tm-2-col-right">
+                                                <div class="tm-bg-white tm-white-header-container">
+                                                    <h2 class="tm-text-title tm-text-title-small">Audience</h2>
+                                                </div>
+                                                <div class="tm-bg-dark-blue text-xs-left tm-textbox tm-textbox-padding tm-white-header-body tm-white-border tm-2-col-equal-height">
+                                                    <p class="tm-text" id="aboutAudience"></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Row 3: Key Topics (full width) -->
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="tm-bg-white tm-textbox-padding tm-margin-b">
+                                            <h2 class="tm-text-title tm-text-title-small tm-header-margin-b">Key Topics</h2>
+                                            <div id="aboutTopics"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Row 4: Chapters (full width, clickable) -->
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="tm-bg-white tm-textbox-padding tm-margin-b">
+                                            <h2 class="tm-text-title tm-text-title-small tm-header-margin-b">Chapters</h2>
+                                            <div id="aboutChapters"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Row 5: Prerequisites + Key Takeaways (side by side) -->
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="tm-flex">
+                                            <div class="col-lg-6 tm-margin-b tm-2-col-left">
+                                                <div class="tm-bg-brown tm-white-border tm-textbox-padding">
+                                                    <h2 class="tm-text-title tm-text-title-small tm-header-margin-b" style="color:#fff;">Prerequisites</h2>
+                                                    <ul class="tm-text" id="aboutPrereqs" style="padding-left:18px; margin:0; color:#fff;"></ul>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 tm-margin-b tm-2-col-right">
+                                                <div class="tm-bg-dark-brown tm-white-border tm-textbox-padding">
+                                                    <h2 class="tm-text-title tm-text-title-small tm-header-margin-b" style="color:#fff;">Key Takeaways</h2>
+                                                    <ul class="tm-text" id="aboutTakeaways" style="padding-left:18px; margin:0; color:#fff;"></ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Fallback: shown when no analysis JSON -->
+                                <div class="row" id="aboutFallback" style="display:none;">
+                                    <div class="col-xs-12">
+                                        <div class="tm-bg-dark-blue tm-white-border tm-textbox-padding">
+                                            <p class="tm-text">No analysis available for this video. Run <code>python video_analyzer.py</code> to generate one.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+                <!-- Page 3: Knowledge Graph -->
+                <li>
+                    <div class="cd-full-width">
+                        <div class="container js-tm-page-content tm-section-margin-t" data-page-no="3">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <div class="tm-bg-dark-blue tm-white-border tm-textbox-padding tm-margin-b">
+                                        <h2 class="tm-text-title tm-text-title-small tm-header-margin-b" style="color:#fff;">Knowledge Graph</h2>
+                                        <p class="tm-text" style="color:#aaa; margin-bottom:10px;" id="kgStats"></p>
+                                        <div id="kgLoading" style="text-align:center; padding:40px 0; color:#aaa;">Loading knowledge graph...</div>
+                                        <div id="kgNetwork" style="width:100%; height:600px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; display:none; background:rgba(10,22,40,0.5);"></div>
+                                        <div id="kgFallback" style="display:none; padding:20px 0; color:#aaa;">
+                                            No knowledge graph available. Run <code>python kg_extractor.py</code> to generate one.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+                <!-- Page 4: Contact (hidden) -->
+                <li style="display:none;">
+                    <div class="cd-full-width">
+                        <div class="container js-tm-page-content tm-section-margin-t-small" data-page-no="4">
+                        </div>
+                    </div>
+                </li>
+            </ul>
+
+            <footer class="tm-footer">
+                <p class="tm-copyright-text pull-xs-right">Copyright &copy; <span class="tm-current-year">2026</span> Moogle</p>
+            </footer>
+        </div>
+
+        <!-- Preloader -->
+        <div id="loader-wrapper">
+            <div id="loader"></div>
+            <div class="loader-section section-left"></div>
+            <div class="loader-section section-right"></div>
+        </div>
+
+        <!-- JS files (same as original) -->
+        <script src="js/jquery-1.11.3.min.js"></script>
+        <script src="js/tether.min.js"></script>
+        <script src="js/isInViewport.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/hero-slider-main.js"></script>
+        <script src="js/jquery.magnific-popup.min.js"></script>
+
+        <script>
+            // --- Video player logic (query params) ---
+            (function() {
+                var params = new URLSearchParams(window.location.search);
+                var videoSrc = params.get('src');
+                var startTime = parseFloat(params.get('t')) || 0;
+                var title = params.get('title') || 'Moogle Video Player';
+                var citedText = params.get('cite') || '';
+
+                var video = document.getElementById('moogleVideo');
+                var info = document.getElementById('playerInfo');
+                var titleEl = document.getElementById('playerTitle');
+
+                if (title) titleEl.textContent = title;
+
+                if (videoSrc) {
+                    // Set subtitle track src BEFORE video load
+                    var srcFilename = videoSrc.split('/').pop().replace(/\.[^.]+$/, '');
+                    var track = document.getElementById('subtitleTrack');
+                    track.src = '/subtitles/' + srcFilename + '_en.vtt';
+
+                    video.src = videoSrc;
+                    video.load();
+
+                    var mins = Math.floor(startTime / 60);
+                    var secs = Math.floor(startTime % 60);
+                    var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+
+                    // Build the current page URL for sharing
+                    var shareUrl = window.location.href;
+                    var shareTitle = title + ' @ ' + timeStr;
+
+                    // Replay button SVG (play icon)
+                    var replaySvg = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+
+                    // Teams icon SVG
+                    var teamsSvg = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+                        + '<path d="M20.625 6.75H13.5V5.25C13.5 4.009 14.509 3 15.75 3H18.375C19.616 3 20.625 4.009 20.625 5.25V6.75Z" fill="#7B83EB"/>'
+                        + '<path d="M18.75 7.5H15C13.343 7.5 12 8.843 12 10.5V18C12 19.657 13.343 21 15 21H18.75C20.407 21 21.75 19.657 21.75 18V10.5C21.75 8.843 20.407 7.5 18.75 7.5Z" fill="#5059C9"/>'
+                        + '<path d="M9.75 6H3.75C2.509 6 1.5 7.009 1.5 8.25V17.25C1.5 18.491 2.509 19.5 3.75 19.5H9.75C10.991 19.5 12 18.491 12 17.25V8.25C12 7.009 10.991 6 9.75 6Z" fill="#5059C9"/>'
+                        + '<circle cx="6.75" cy="10.5" r="2.25" fill="white"/>'
+                        + '<path d="M3 16.5C3 14.843 4.343 13.5 6 13.5H7.5C9.157 13.5 10.5 14.843 10.5 16.5V17.25H3V16.5Z" fill="white"/>'
+                        + '<circle cx="16.875" cy="12" r="1.5" fill="white"/>'
+                        + '<path d="M14.25 16.5C14.25 15.257 15.259 14.25 16.5 14.25H17.25C18.493 14.25 19.5 15.257 19.5 16.5V17.25H14.25V16.5Z" fill="white"/>'
+                        + '</svg>';
+
+                    var teamsShareUrl = 'https://teams.microsoft.com/share?href='
+                        + encodeURIComponent(shareUrl)
+                        + '&text=' + encodeURIComponent(shareTitle)
+                        + '&preview=true';
+
+                    var html = '<div class="tm-player-actions">'
+                        + '<button class="tm-btn-replay" id="btnReplay" title="Replay from ' + timeStr + '">'
+                        + replaySvg + ' Play from ' + timeStr + ' (' + startTime.toFixed(2) + 's)'
+                        + '</button>'
+                        + '<a class="tm-btn-teams" href="' + teamsShareUrl + '" target="_blank" rel="noopener" title="Share to Microsoft Teams">'
+                        + teamsSvg + ' Share to Teams'
+                        + '</a>'
+
+                        + '</div>';
+
+                    if (citedText) {
+                        html += '<div class="tm-cited-text"><strong>Cited text:</strong><br><em>'
+                            + decodeURIComponent(citedText) + '</em></div>';
+                    }
+                    info.innerHTML = html;
+
+                    // Replay button
+                    document.getElementById('btnReplay').addEventListener('click', function() {
+                        video.currentTime = startTime;
+                        video.play();
+                    });
+
+
+
+                    // Enable subtitles by default once metadata loads
+                    video.addEventListener('loadedmetadata', function() {
+                        if (video.textTracks.length > 0) {
+                            video.textTracks[0].mode = 'showing';
+                        }
+                    });
+
+                    // Seek to start time once data is ready
+                    video.addEventListener('loadeddata', function() {
+                        video.currentTime = startTime;
+                    });
+                } else {
+                    info.innerHTML = 'No video source specified.';
+                }
+            })();
+
+            // --- About page: load analysis JSON and populate ---
+            (function() {
+                var params = new URLSearchParams(window.location.search);
+                var analysisUrl = params.get('analysis');
+
+                // Auto-derive analysis URL from src if not explicitly provided
+                // e.g. src=/video/xxx.mp4 -> /txt/xxx_en_analysis.json
+                if (!analysisUrl) {
+                    var src = params.get('src') || '';
+                    if (src) {
+                        var filename = src.split('/').pop();           // "xxx.mp4"
+                        var stem = filename.replace(/\.[^.]+$/, '');   // "xxx"
+                        analysisUrl = '/txt/' + stem + '_en_analysis.json';
+                    }
+                }
+
+                if (!analysisUrl) {
+                    document.getElementById('aboutLoading').style.display = 'none';
+                    document.getElementById('aboutFallback').style.display = 'block';
+                    document.getElementById('aboutContent').style.display = 'block';
+                    return;
+                }
+
+                fetch(analysisUrl)
+                    .then(function(resp) {
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        return resp.json();
+                    })
+                    .then(function(data) {
+                        document.getElementById('aboutLoading').style.display = 'none';
+                        document.getElementById('aboutContent').style.display = 'block';
+
+                        // Summary
+                        var summaryEl = document.getElementById('aboutSummary');
+                        summaryEl.innerHTML = (data.summary || 'No summary available.').replace(/\n/g, '<br>');
+
+                        // Speaker
+                        var speaker = data.speaker || {};
+                        document.getElementById('aboutSpeakerName').textContent = speaker.name || 'Unknown';
+                        document.getElementById('aboutSpeakerBio').textContent = speaker.bio || '';
+
+                        // Topics (as styled tags)
+                        var topicsEl = document.getElementById('aboutTopics');
+                        var topics = data.topics || [];
+                        topicsEl.innerHTML = topics.map(function(t) {
+                            return '<span style="display:inline-block; padding:4px 12px; margin:3px 4px 3px 0; '
+                                + 'background:#1A2D4B; color:#fff; border-radius:14px; font-size:0.85em;">'
+                                + escapeHtml(t) + '</span>';
+                        }).join('');
+
+                        // Chapters (clickable — jumps to Player tab at the chapter's start time)
+                        var chaptersEl = document.getElementById('aboutChapters');
+                        var chapters = data.chapters || [];
+                        var videoSrc = params.get('src') || '';
+                        var videoTitle = params.get('title') || '';
+                        chaptersEl.innerHTML = chapters.map(function(ch, idx) {
+                            var mins = Math.floor(ch.start_seconds / 60);
+                            var secs = Math.floor(ch.start_seconds % 60);
+                            var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+                            var endMins = Math.floor(ch.end_seconds / 60);
+                            var endSecs = Math.floor(ch.end_seconds % 60);
+                            var endTimeStr = (endMins < 10 ? '0' : '') + endMins + ':' + (endSecs < 10 ? '0' : '') + endSecs;
+                            var playerLink = 'player.html?src=' + encodeURIComponent(videoSrc)
+                                + '&t=' + ch.start_seconds
+                                + '&title=' + encodeURIComponent(videoTitle);
+                            return '<div style="padding:8px 0; border-bottom:1px solid #eee; display:flex; align-items:baseline; gap:12px;">'
+                                + '<a href="' + playerLink + '" style="color:#856729; font-weight:600; white-space:nowrap; min-width:110px;">'
+                                + timeStr + ' - ' + endTimeStr + '</a>'
+                                + '<div><strong>' + escapeHtml(ch.title) + '</strong>'
+                                + '<br><span style="color:#666; font-size:0.9em;">' + escapeHtml(ch.description || '') + '</span></div>'
+                                + '</div>';
+                        }).join('');
+
+                        // Audience
+                        document.getElementById('aboutAudience').textContent = data.audience || 'Not specified.';
+
+                        // Prerequisites
+                        var prereqsEl = document.getElementById('aboutPrereqs');
+                        var prereqs = data.prerequisites || [];
+                        prereqsEl.innerHTML = prereqs.length
+                            ? prereqs.map(function(p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('')
+                            : '<li style="list-style:none; padding:0;">None required.</li>';
+
+                        // Key Takeaways
+                        var takeawaysEl = document.getElementById('aboutTakeaways');
+                        var takeaways = data.key_takeaways || [];
+                        takeawaysEl.innerHTML = takeaways.map(function(t) {
+                            return '<li>' + escapeHtml(t) + '</li>';
+                        }).join('');
+                    })
+                    .catch(function(err) {
+                        document.getElementById('aboutLoading').style.display = 'none';
+                        document.getElementById('aboutContent').style.display = 'block';
+                        document.getElementById('aboutFallback').style.display = 'block';
+                    });
+
+                function escapeHtml(str) {
+                    var div = document.createElement('div');
+                    div.appendChild(document.createTextNode(str));
+                    return div.innerHTML;
+                }
+            })();
+
+
+            // --- Knowledge Graph page: load KG JSON and render with vis.js ---
+            (function() {
+                var params = new URLSearchParams(window.location.search);
+                var kgUrl = params.get('kg');
+
+                // Auto-derive KG URL from src if not explicitly provided
+                if (!kgUrl) {
+                    var src = params.get('src') || '';
+                    if (src) {
+                        var filename = src.split('/').pop();
+                        var stem = filename.replace(/\.[^.]+$/, '');
+                        kgUrl = '/txt/' + stem + '_en_kg.json';
+                    }
+                }
+
+                if (!kgUrl) {
+                    document.getElementById('kgLoading').style.display = 'none';
+                    document.getElementById('kgFallback').style.display = 'block';
+                    return;
+                }
+
+                fetch(kgUrl)
+                    .then(function(resp) {
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        return resp.json();
+                    })
+                    .then(function(data) {
+                        document.getElementById('kgLoading').style.display = 'none';
+                        document.getElementById('kgNetwork').style.display = 'block';
+
+                        var ec = data._entity_count || (data.entities || []).length;
+                        var tc = data._triple_count || (data.triples || []).length;
+                        document.getElementById('kgStats').textContent = ec + ' entities, ' + tc + ' relationships';
+
+                        // Color map by entity type
+                        var typeColors = {
+                            concept: '#4A90D9',
+                            person: '#E74C3C',
+                            method: '#27AE60',
+                            application: '#F39C12',
+                            property: '#9B59B6',
+                            example: '#1ABC9C',
+                            value: '#95A5A6'
+                        };
+
+                        // Build vis.js nodes
+                        var nodes = (data.entities || []).map(function(e, i) {
+                            return {
+                                id: e.name,
+                                label: e.name,
+                                color: {
+                                    background: typeColors[e.type] || '#4A90D9',
+                                    border: typeColors[e.type] || '#4A90D9',
+                                    highlight: { background: '#fff', border: typeColors[e.type] || '#4A90D9' }
+                                },
+                                font: { color: '#fff', size: 14, face: 'Open Sans' },
+                                shape: 'dot',
+                                size: 20,
+                                title: e.type + ': ' + e.name
+                            };
+                        });
+
+                        // Build vis.js edges
+                        var edgeSet = {};
+                        var edges = [];
+                        (data.triples || []).forEach(function(t) {
+                            var key = t.subject + '|' + t.relation + '|' + t.object;
+                            if (edgeSet[key]) return;
+                            edgeSet[key] = true;
+                            edges.push({
+                                from: t.subject,
+                                to: t.object,
+                                label: t.relation,
+                                arrows: 'to',
+                                font: { size: 11, color: '#aaa', align: 'middle' },
+                                color: { color: 'rgba(255,255,255,0.35)', highlight: '#c9a84c' },
+                                smooth: { type: 'curvedCW', roundness: 0.15 }
+                            });
+                        });
+
+                        var container = document.getElementById('kgNetwork');
+                        var network = new vis.Network(container, { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) }, {
+                            physics: {
+                                solver: 'forceAtlas2Based',
+                                forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 120, damping: 0.4 },
+                                stabilization: { iterations: 200 }
+                            },
+                            interaction: { hover: true, tooltipDelay: 100, zoomView: true, dragView: true },
+                            layout: { improvedLayout: true }
+                        });
+
+                        // Build legend
+                        var legendHtml = '<div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:12px; justify-content:center;">';
+                        var usedTypes = {};
+                        (data.entities || []).forEach(function(e) { usedTypes[e.type] = true; });
+                        Object.keys(usedTypes).forEach(function(type) {
+                            var color = typeColors[type] || '#4A90D9';
+                            legendHtml += '<span style="display:inline-flex; align-items:center; gap:4px; font-size:0.85em; color:#ccc;">'
+                                + '<span style="width:12px; height:12px; border-radius:50%; background:' + color + '; display:inline-block;"></span>'
+                                + type + '</span>';
+                        });
+                        legendHtml += '</div>';
+                        document.getElementById('kgStats').innerHTML += legendHtml;
+                    })
+                    .catch(function(err) {
+                        document.getElementById('kgLoading').style.display = 'none';
+                        document.getElementById('kgFallback').style.display = 'block';
+                    });
+            })();
+            // --- Original Big City page logic (unchanged) ---
+            function adjustHeightOfPage(pageNo) {
+                var offset = 80;
+                var pageContentHeight = $(".cd-hero-slider li:nth-of-type(" + pageNo + ") .js-tm-page-content").height();
+                if ($(window).width() >= 992) { offset = 120; }
+                else if ($(window).width() < 480) { offset = 40; }
+                var totalPageHeight = 335 + $('.cd-slider-nav').height()
+                                        + pageContentHeight + offset
+                                        + $('.tm-footer').height();
+                if (totalPageHeight > $(window).height()) {
+                    $('.cd-hero-slider').addClass('small-screen');
+                    $('.cd-hero-slider li:nth-of-type(' + pageNo + ')').css("min-height", totalPageHeight + "px");
+                } else {
+                    $('.cd-hero-slider').removeClass('small-screen');
+                    $('.cd-hero-slider li:nth-of-type(' + pageNo + ')').css("min-height", "100%");
+                }
+            }
+
+            function uploadVideo() {
+                var videoWrapper = $('.cd-bg-video-wrapper');
+                if (videoWrapper.is(':visible')) {
+                    var videoUrl = videoWrapper.data('video'),
+                    video = $('<video autoplay loop><source src="' + videoUrl + '.mp4" type="video/mp4" /></video>');
+                    video.appendTo(videoWrapper);
+                    if (videoWrapper.parent('.cd-bg-video.selected').length > 0) video.get(0).play();
+                }
+            }
+
+            $(window).load(function() {
+                adjustHeightOfPage(1);
+
+                if ($(window).width() > 800) {
+                    uploadVideo();
+                }
+
+                $('.gallery-first').magnificPopup({
+                    delegate: 'a', type: 'image', gallery: { enabled: true }
+                });
+                $('.gallery-second').magnificPopup({
+                    delegate: 'a', type: 'image', gallery: { enabled: true }
+                });
+
+                $('#tmNavbar a').click(function() {
+                    $('#tmNavbar').collapse('hide');
+                    adjustHeightOfPage($(this).data("no"));
+                });
+
+                $(window).resize(function() {
+                    var currentPageNo = $(".cd-hero-slider li.selected .js-tm-page-content").data("page-no");
+                    setTimeout(function() {
+                        adjustHeightOfPage(currentPageNo);
+                    }, 3000);
+                    if ($(window).width() > 800) {
+                        uploadVideo();
+                    }
+                });
+
+                // Auto-play removed: Chrome blocks play() without user interaction.
+
+                $('body').addClass('loaded');
+                $('.tm-current-year').text(new Date().getFullYear());
+            });
+        </script>
+
+</body>
+</html>

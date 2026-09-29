@@ -1,0 +1,106 @@
+[    0.00 -     3.96] The term deep learning refers to training neural networks,
+[    3.96 -     5.98] sometimes very large neural networks.
+[    5.98 -     8.36] So what exactly is a neural network?
+[    8.36 -    12.40] In this video, let's try to give you some of the basic intuitions.
+[   12.40 -    16.40] Let's start with a housing price prediction example.
+[   16.40 -    19.34] Let's say you have a data set with six houses,
+[   19.34 -    23.00] so you know the size of the houses in square feet or square meters,
+[   23.00 -    25.24] and you know the price of the house and you want to
+[   25.24 -    29.44] fit a function to predict the price of house as a function of the size.
+[   29.44 -    32.44] So if you're familiar with linear regression,
+[   32.44 -    35.22] you might say, well, let's fit a straight line to this data.
+[   35.22 -    38.04] So you know, maybe you get a straight line like that.
+[   38.04 -    40.20] But to be a bit fancier, you might say,
+[   40.20 -    43.76] well, we know that prices can never be negative, right?
+[   43.76 -    46.10] So instead of a straight line fit,
+[   46.10 -    48.02] which will eventually become negative,
+[   48.02 -    51.66] let's bend the curve here, so it just ends up zero here.
+[   51.66 -    54.32] So this thick blue line ends up being,
+[   54.32 -    57.48] you know, your function for predicting
+[   57.48 -    59.86] the price of a house as a function of the size.
+[   59.86 -    64.48] So it's zero here, and then there's a straight line fit to the right.
+[   64.48 -    67.76] So you can think of this function that you've just fit to
+[   67.76 -    71.98] housing prices as a very simple neural network.
+[   71.98 -    74.32] It's almost the simplest possible neural network.
+[   74.32 -    75.48] Let me draw it here.
+[   75.48 -    79.80] We have as the input to the neural network,
+[   79.80 -    82.30] the size of a house, which we want to call x.
+[   82.30 -    86.24] It goes into this node, this little circle,
+[   86.24 -    91.10] and then it outputs the price when we call y.
+[   91.10 -    98.10] So this little circle, which is a single neuron in a neural network,
+[   98.10 -   102.76] implements this function that we drew on the left.
+[  102.76 -   107.14] And all that the neuron does is it inputs the size,
+[  107.14 -   110.32] computes this linear function, takes a max of zero,
+[  110.32 -   112.10] and then outputs the estimated price.
+[  112.10 -   116.22] And by the way, in the neural network literature,
+[  116.22 -   118.26] you see this function a lot.
+[  118.26 -   120.72] This function which goes at zero at some time,
+[  120.72 -   123.22] and then it takes off as a straight line.
+[  123.22 -   127.36] This function is called a ReLU function,
+[  127.36 -   135.60] which stands for Rectified Linear Unit.
+[  135.60 -   137.26] So R-E-L-U.
+[  137.26 -   140.50] And Rectified just means taking a max of zero,
+[  140.50 -   143.72] which is why you get a function shape like this.
+[  143.72 -   146.04] You don't need to worry about ReLU units for now,
+[  146.04 -   149.90] but it's just something you see again later in this course.
+[  149.90 -   153.90] So if this is a single neuron, neural network,
+[  153.90 -   157.44] really a tiny little neural network,
+[  157.44 -   161.34] a larger neural network is then formed by taking many of these
+[  161.34 -   164.64] single neurons and stacking them together.
+[  164.64 -   170.52] So if you think of this neuron as being like a single Lego break,
+[  170.52 -   175.36] you then get a bigger neural network by stacking together many of these Lego breaks.
+[  175.36 -   177.36] Let's see an example.
+[  177.36 -   182.34] Let's say that instead of predicting the price of a house just from its size,
+[  182.34 -   184.44] you now have other features.
+[  184.44 -   186.58] You know other things about the house,
+[  186.58 -   191.14] such as the number of bedrooms, which one of right is pound bedrooms.
+[  191.14 -   198.14] And you might think that one of the things that really affects the price of a house is family size.
+[  198.14 -   201.26] Right? So you know, can this house fit your family of three,
+[  201.26 -   203.44] or family of four, or family of five?
+[  203.44 -   207.74] And it's really based on the size and square feet or square meters and the number of bedrooms
+[  207.74 -   212.74] that determines whether or not a house can fit your family's family size.
+[  212.74 -   217.74] And then maybe you know the zip codes in different countries.
+[  217.74 -   221.74] It's called the postal code, right, of the house.
+[  221.74 -   228.62] And the zip code maybe is a feature that tells you, you know, walkability.
+[  228.62 -   231.62] So is this neighborhood highly walkable?
+[  231.62 -   235.62] You know, can you just walk to the grocery store and walk to school or do you need to drive?
+[  235.62 -   237.62] Some people prefer highly walkable neighborhoods.
+[  237.62 -   245.62] And then the zip code as well as, you know, the wealth maybe tells you, right,
+[  245.62 -   248.62] certainly in the United States but some other countries as well,
+[  248.62 -   252.62] tells you how good is the school quality.
+[  252.62 -   259.62] So each of these little circles I'm drawing can be one of those ReLU rectified linear
+[  259.62 -   262.62] units or some other slightly non-linear function.
+[  262.62 -   266.62] So that based on the size and number of bedrooms, you can estimate the family size,
+[  266.62 -   269.62] the zip code, estimate walkability based on zip code and wealth,
+[  269.62 -   271.62] you can estimate the school quality.
+[  271.62 -   276.62] And then finally, you might think that, well, the way people decide how much they're willing to pay for a house
+[  276.62 -   278.62] is they look at the things that really matter to them.
+[  278.62 -   282.62] In this case, family size, walkability, and school quality.
+[  282.62 -   285.62] And that helps you predict the price.
+[  285.62 -   297.62] So in this example, x is all of these four inputs and y is the price you're trying to predict.
+[  297.62 -   304.62] And so by stacking together a few of the single neurons or the simple predictors we had from the previous slide,
+[  304.62 -   306.62] we now have a slightly larger neural network.
+[  306.62 -   312.24] Part of the magic of a neural network is that when you implement it, you need to give it,
+[  312.62 -   319.62] just the input x and the output y for a number of examples in your training set.
+[  319.62 -   324.62] And then all these things in the middle, it will figure out by itself.
+[  324.62 -   331.62] So what you actually implement is this, where here you have a neural network with four inputs.
+[  331.62 -   339.62] So the input features might be the size, number of bedrooms, the zip code or postal code, and the wealth of the neighborhood.
+[  339.62 -   349.62] And so given these input features, the job of the neural network will be to predict the price y.
+[  349.62 -   356.62] And notice also that each of these circles, these are called hidden units in the neural network,
+[  356.62 -   361.62] that each of them takes as inputs, all four input features.
+[  361.62 -   367.62] So for example, rather than saying this first node represents family size,
+[  367.62 -   372.62] and family size depends only on the features x1 and x2, right?
+[  372.62 -   377.62] Instead we're going to say, well, neural network, you decide whatever you want this node to be,
+[  377.62 -   380.62] and we'll give you all four input features to compute whatever you want.
+[  380.62 -   388.62] So we say that the layers, that is this input layer and this layer in the middle of the neural network are densely connected,
+[  388.62 -   393.62] because every input feature is connected to every one of these circles in the middle.
+[  393.62 -   398.62] And the remarkable thing about neural networks is that given enough data about x and y,
+[  398.62 -   406.62] given enough training examples with both x and y, neural networks are remarkably good at figuring out functions that accurately map from x to y.
+[  406.62 -   410.62] So that's a basic neural network.
+[  410.62 -   413.62] It turns out that as you build out your own neural networks,
+[  413.62 -   418.62] you probably find them to be most useful, most powerful in supervised learning settings,
+[  418.62 -   422.62] meaning that you're trying to take an input x and map it to some output y,
+[  422.62 -   425.62] like we just saw in the housing price prediction example.
+[  425.62 -   429.62] In the next video, let's go over some more examples of supervised learning,
+[  429.62 -   435.62] and some examples of where you might find neural networks to be incredibly helpful for your applications as well.
+[  435.62 -   436.74] So we hope that this is

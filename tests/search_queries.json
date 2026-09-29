@@ -1,0 +1,92 @@
+[
+  {
+    "query": "what is a neural network",
+    "relevant_segments": [2, 3, 22, 23],
+    "note": "Definition and introduction of neural networks"
+  },
+  {
+    "query": "ReLU function",
+    "relevant_segments": [38, 39, 40, 41, 42, 43, 44],
+    "note": "ReLU explanation: stands for Rectified Linear Unit, max of zero"
+  },
+  {
+    "query": "housing price prediction",
+    "relevant_segments": [4, 5, 6, 7, 8, 9, 10, 11],
+    "note": "Housing price example with size and price"
+  },
+  {
+    "query": "linear regression straight line",
+    "relevant_segments": [9, 10, 11, 12, 13, 14, 15],
+    "note": "Linear regression fits a straight line, but prices can't be negative"
+  },
+  {
+    "query": "single neuron simplest neural network",
+    "relevant_segments": [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33],
+    "note": "Single neuron as simplest neural network, inputs size outputs price"
+  },
+  {
+    "query": "stacking neurons Lego brick bigger network",
+    "relevant_segments": [46, 47, 48, 49, 50, 51],
+    "note": "Stacking neurons like Lego bricks to form larger networks"
+  },
+  {
+    "query": "family size bedrooms zip code walkability school quality",
+    "relevant_segments": [55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70],
+    "note": "Multiple features: bedrooms->family size, zip->walkability, wealth->school quality"
+  },
+  {
+    "query": "hidden units densely connected",
+    "relevant_segments": [88, 89, 90, 91, 92, 93, 94, 95],
+    "note": "Hidden units take all inputs, layers are densely connected"
+  },
+  {
+    "query": "supervised learning map input output",
+    "relevant_segments": [99, 100, 101, 102, 103, 104],
+    "note": "Neural networks most powerful in supervised learning, mapping x to y"
+  },
+  {
+    "query": "training set figure out by itself",
+    "relevant_segments": [82, 83, 84, 85],
+    "note": "Give input x and output y from training set, network figures out the middle"
+  },
+  {
+    "query": "deep learning training large neural networks",
+    "relevant_segments": [0, 1],
+    "note": "Opening definition: deep learning = training neural networks"
+  },
+  {
+    "query": "prices can never be negative bend the curve",
+    "relevant_segments": [13, 14, 15, 16, 17],
+    "note": "Prices can't be negative, so bend the curve to zero instead of straight line"
+  },
+  {
+    "query": "four inputs size bedrooms postal code wealth",
+    "relevant_segments": [85, 86, 87],
+    "note": "Neural network with four inputs: size, bedrooms, zip/postal code, wealth"
+  },
+  {
+    "query": "predict the price y",
+    "relevant_segments": [8, 28, 78, 87],
+    "note": "Predicting price y appears in multiple contexts"
+  },
+  {
+    "query": "enough data training examples accurately map",
+    "relevant_segments": [96, 97],
+    "note": "Given enough data, neural networks accurately map x to y"
+  },
+  {
+    "query": "Rectified Linear Unit max of zero",
+    "relevant_segments": [33, 39, 40, 42],
+    "note": "ReLU = Rectified Linear Unit, rectified means max of zero"
+  },
+  {
+    "query": "walkable neighborhood grocery store school drive",
+    "relevant_segments": [64, 65, 66],
+    "note": "Walkability: can you walk to grocery store and school or need to drive"
+  },
+  {
+    "query": "neural network literature function goes at zero straight line",
+    "relevant_segments": [35, 36, 37, 38],
+    "note": "In NN literature, this function (zero then straight line) appears a lot"
+  }
+]

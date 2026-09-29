@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+
+# IDE
+.idea/
+
+# Environment (contains API keys)
+.env
+
+# Generated data (large files)
+static/video/*.mp4
+static/subtitles/*.vtt
+static/txt/*_analysis.json
+static/txt/*_kg.json
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temp
+_tmp_audio/
+*.log

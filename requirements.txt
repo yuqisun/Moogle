@@ -1,0 +1,2 @@
+# Streamlit 前端（.venv 里装的依赖；video_locator.py 只用标准库）
+streamlit==1.64.0

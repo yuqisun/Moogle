@@ -1,0 +1,538 @@
+{
+  "text": " The term deep learning refers to training neural networks, sometimes very large neural networks. So what exactly is a neural network? In this video, let's try to give you some of the basic intuitions. Let's start with a housing price prediction example. Let's say you have a data set with six houses, so you know the size of the houses in square feet or square meters, and you know the price of the house and you want to fit a function to predict the price of house as a function of the size. So if you're familiar with linear regression, you might say, well, let's fit a straight line to this data. So you know, maybe you get a straight line like that. But to be a bit fancier, you might say, well, we know that prices can never be negative, right? So instead of a straight line fit, which will eventually become negative, let's bend the curve here, so it just ends up zero here. So this thick blue line ends up being, you know, your function for predicting the price of a house as a function of the size. So it's zero here, and then there's a straight line fit to the right. So you can think of this function that you've just fit to housing prices as a very simple neural network. It's almost the simplest possible neural network. Let me draw it here. We have as the input to the neural network, the size of a house, which we want to call x. It goes into this node, this little circle, and then it outputs the price when we call y. So this little circle, which is a single neuron in a neural network, implements this function that we drew on the left. And all that the neuron does is it inputs the size, computes this linear function, takes a max of zero, and then outputs the estimated price. And by the way, in the neural network literature, you see this function a lot. This function which goes at zero at some time, and then it takes off as a straight line. This function is called a ReLU function, which stands for Rectified Linear Unit. So R-E-L-U. And Rectified just means taking a max of zero, which is why you get a function shape like this. You don't need to worry about ReLU units for now, but it's just something you see again later in this course. So if this is a single neuron, neural network, really a tiny little neural network, a larger neural network is then formed by taking many of these single neurons and stacking them together. So if you think of this neuron as being like a single Lego break, you then get a bigger neural network by stacking together many of these Lego breaks. Let's see an example. Let's say that instead of predicting the price of a house just from its size, you now have other features. You know other things about the house, such as the number of bedrooms, which one of right is pound bedrooms. And you might think that one of the things that really affects the price of a house is family size. Right? So you know, can this house fit your family of three, or family of four, or family of five? And it's really based on the size and square feet or square meters and the number of bedrooms that determines whether or not a house can fit your family's family size. And then maybe you know the zip codes in different countries. It's called the postal code, right, of the house. And the zip code maybe is a feature that tells you, you know, walkability. So is this neighborhood highly walkable? You know, can you just walk to the grocery store and walk to school or do you need to drive? Some people prefer highly walkable neighborhoods. And then the zip code as well as, you know, the wealth maybe tells you, right, certainly in the United States but some other countries as well, tells you how good is the school quality. So each of these little circles I'm drawing can be one of those ReLU rectified linear units or some other slightly non-linear function. So that based on the size and number of bedrooms, you can estimate the family size, the zip code, estimate walkability based on zip code and wealth, you can estimate the school quality. And then finally, you might think that, well, the way people decide how much they're willing to pay for a house is they look at the things that really matter to them. In this case, family size, walkability, and school quality. And that helps you predict the price. So in this example, x is all of these four inputs and y is the price you're trying to predict. And so by stacking together a few of the single neurons or the simple predictors we had from the previous slide, we now have a slightly larger neural network. Part of the magic of a neural network is that when you implement it, you need to give it, just the input x and the output y for a number of examples in your training set. And then all these things in the middle, it will figure out by itself. So what you actually implement is this, where here you have a neural network with four inputs. So the input features might be the size, number of bedrooms, the zip code or postal code, and the wealth of the neighborhood. And so given these input features, the job of the neural network will be to predict the price y. And notice also that each of these circles, these are called hidden units in the neural network, that each of them takes as inputs, all four input features. So for example, rather than saying this first node represents family size, and family size depends only on the features x1 and x2, right? Instead we're going to say, well, neural network, you decide whatever you want this node to be, and we'll give you all four input features to compute whatever you want. So we say that the layers, that is this input layer and this layer in the middle of the neural network are densely connected, because every input feature is connected to every one of these circles in the middle. And the remarkable thing about neural networks is that given enough data about x and y, given enough training examples with both x and y, neural networks are remarkably good at figuring out functions that accurately map from x to y. So that's a basic neural network. It turns out that as you build out your own neural networks, you probably find them to be most useful, most powerful in supervised learning settings, meaning that you're trying to take an input x and map it to some output y, like we just saw in the housing price prediction example. In the next video, let's go over some more examples of supervised learning, and some examples of where you might find neural networks to be incredibly helpful for your applications as well. So we hope that this is",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 3.96,
+      "text": " The term deep learning refers to training neural networks,"
+    },
+    {
+      "start": 3.96,
+      "end": 5.98,
+      "text": " sometimes very large neural networks."
+    },
+    {
+      "start": 5.98,
+      "end": 8.36,
+      "text": " So what exactly is a neural network?"
+    },
+    {
+      "start": 8.36,
+      "end": 12.4,
+      "text": " In this video, let's try to give you some of the basic intuitions."
+    },
+    {
+      "start": 12.4,
+      "end": 16.4,
+      "text": " Let's start with a housing price prediction example."
+    },
+    {
+      "start": 16.4,
+      "end": 19.34,
+      "text": " Let's say you have a data set with six houses,"
+    },
+    {
+      "start": 19.34,
+      "end": 23.0,
+      "text": " so you know the size of the houses in square feet or square meters,"
+    },
+    {
+      "start": 23.0,
+      "end": 25.240000000000002,
+      "text": " and you know the price of the house and you want to"
+    },
+    {
+      "start": 25.240000000000002,
+      "end": 29.44,
+      "text": " fit a function to predict the price of house as a function of the size."
+    },
+    {
+      "start": 29.44,
+      "end": 32.44,
+      "text": " So if you're familiar with linear regression,"
+    },
+    {
+      "start": 32.44,
+      "end": 35.22,
+      "text": " you might say, well, let's fit a straight line to this data."
+    },
+    {
+      "start": 35.22,
+      "end": 38.04,
+      "text": " So you know, maybe you get a straight line like that."
+    },
+    {
+      "start": 38.04,
+      "end": 40.2,
+      "text": " But to be a bit fancier, you might say,"
+    },
+    {
+      "start": 40.2,
+      "end": 43.760000000000005,
+      "text": " well, we know that prices can never be negative, right?"
+    },
+    {
+      "start": 43.760000000000005,
+      "end": 46.1,
+      "text": " So instead of a straight line fit,"
+    },
+    {
+      "start": 46.1,
+      "end": 48.02,
+      "text": " which will eventually become negative,"
+    },
+    {
+      "start": 48.02,
+      "end": 51.66,
+      "text": " let's bend the curve here, so it just ends up zero here."
+    },
+    {
+      "start": 51.66,
+      "end": 54.32,
+      "text": " So this thick blue line ends up being,"
+    },
+    {
+      "start": 54.32,
+      "end": 57.480000000000004,
+      "text": " you know, your function for predicting"
+    },
+    {
+      "start": 57.48,
+      "end": 59.86,
+      "text": " the price of a house as a function of the size."
+    },
+    {
+      "start": 59.86,
+      "end": 64.47999999999999,
+      "text": " So it's zero here, and then there's a straight line fit to the right."
+    },
+    {
+      "start": 64.47999999999999,
+      "end": 67.75999999999999,
+      "text": " So you can think of this function that you've just fit to"
+    },
+    {
+      "start": 67.75999999999999,
+      "end": 71.97999999999999,
+      "text": " housing prices as a very simple neural network."
+    },
+    {
+      "start": 71.97999999999999,
+      "end": 74.32,
+      "text": " It's almost the simplest possible neural network."
+    },
+    {
+      "start": 74.32,
+      "end": 75.47999999999999,
+      "text": " Let me draw it here."
+    },
+    {
+      "start": 75.48,
+      "end": 79.80000000000001,
+      "text": " We have as the input to the neural network,"
+    },
+    {
+      "start": 79.80000000000001,
+      "end": 82.30000000000001,
+      "text": " the size of a house, which we want to call x."
+    },
+    {
+      "start": 82.30000000000001,
+      "end": 86.24000000000001,
+      "text": " It goes into this node, this little circle,"
+    },
+    {
+      "start": 86.24000000000001,
+      "end": 91.10000000000001,
+      "text": " and then it outputs the price when we call y."
+    },
+    {
+      "start": 91.1,
+      "end": 98.1,
+      "text": " So this little circle, which is a single neuron in a neural network,"
+    },
+    {
+      "start": 98.1,
+      "end": 102.75999999999999,
+      "text": " implements this function that we drew on the left."
+    },
+    {
+      "start": 102.75999999999999,
+      "end": 107.13999999999999,
+      "text": " And all that the neuron does is it inputs the size,"
+    },
+    {
+      "start": 107.13999999999999,
+      "end": 110.32,
+      "text": " computes this linear function, takes a max of zero,"
+    },
+    {
+      "start": 110.32,
+      "end": 112.1,
+      "text": " and then outputs the estimated price."
+    },
+    {
+      "start": 112.1,
+      "end": 116.22,
+      "text": " And by the way, in the neural network literature,"
+    },
+    {
+      "start": 116.22,
+      "end": 118.25999999999999,
+      "text": " you see this function a lot."
+    },
+    {
+      "start": 118.25999999999999,
+      "end": 120.72,
+      "text": " This function which goes at zero at some time,"
+    },
+    {
+      "start": 120.72,
+      "end": 123.22,
+      "text": " and then it takes off as a straight line."
+    },
+    {
+      "start": 123.22,
+      "end": 127.36,
+      "text": " This function is called a ReLU function,"
+    },
+    {
+      "start": 127.36,
+      "end": 135.6,
+      "text": " which stands for Rectified Linear Unit."
+    },
+    {
+      "start": 135.6,
+      "end": 137.26,
+      "text": " So R-E-L-U."
+    },
+    {
+      "start": 137.26,
+      "end": 140.5,
+      "text": " And Rectified just means taking a max of zero,"
+    },
+    {
+      "start": 140.5,
+      "end": 143.72,
+      "text": " which is why you get a function shape like this."
+    },
+    {
+      "start": 143.72,
+      "end": 146.04,
+      "text": " You don't need to worry about ReLU units for now,"
+    },
+    {
+      "start": 146.04,
+      "end": 149.89999999999998,
+      "text": " but it's just something you see again later in this course."
+    },
+    {
+      "start": 149.89999999999998,
+      "end": 153.89999999999998,
+      "text": " So if this is a single neuron, neural network,"
+    },
+    {
+      "start": 153.89999999999998,
+      "end": 157.44,
+      "text": " really a tiny little neural network,"
+    },
+    {
+      "start": 157.44,
+      "end": 161.34,
+      "text": " a larger neural network is then formed by taking many of these"
+    },
+    {
+      "start": 161.34,
+      "end": 164.64,
+      "text": " single neurons and stacking them together."
+    },
+    {
+      "start": 164.64,
+      "end": 170.51999999999998,
+      "text": " So if you think of this neuron as being like a single Lego break,"
+    },
+    {
+      "start": 170.51999999999998,
+      "end": 175.35999999999999,
+      "text": " you then get a bigger neural network by stacking together many of these Lego breaks."
+    },
+    {
+      "start": 175.35999999999999,
+      "end": 177.35999999999999,
+      "text": " Let's see an example."
+    },
+    {
+      "start": 177.35999999999999,
+      "end": 182.33999999999997,
+      "text": " Let's say that instead of predicting the price of a house just from its size,"
+    },
+    {
+      "start": 182.33999999999997,
+      "end": 184.44,
+      "text": " you now have other features."
+    },
+    {
+      "start": 184.44,
+      "end": 186.57999999999998,
+      "text": " You know other things about the house,"
+    },
+    {
+      "start": 186.57999999999998,
+      "end": 191.14,
+      "text": " such as the number of bedrooms, which one of right is pound bedrooms."
+    },
+    {
+      "start": 191.14,
+      "end": 198.14,
+      "text": " And you might think that one of the things that really affects the price of a house is family size."
+    },
+    {
+      "start": 198.14,
+      "end": 201.26,
+      "text": " Right? So you know, can this house fit your family of three,"
+    },
+    {
+      "start": 201.26,
+      "end": 203.44,
+      "text": " or family of four, or family of five?"
+    },
+    {
+      "start": 203.44,
+      "end": 207.73999999999998,
+      "text": " And it's really based on the size and square feet or square meters and the number of bedrooms"
+    },
+    {
+      "start": 207.74,
+      "end": 212.74,
+      "text": " that determines whether or not a house can fit your family's family size."
+    },
+    {
+      "start": 212.74,
+      "end": 217.74,
+      "text": " And then maybe you know the zip codes in different countries."
+    },
+    {
+      "start": 217.74,
+      "end": 221.74,
+      "text": " It's called the postal code, right, of the house."
+    },
+    {
+      "start": 221.74,
+      "end": 228.62,
+      "text": " And the zip code maybe is a feature that tells you, you know, walkability."
+    },
+    {
+      "start": 228.62,
+      "end": 231.62,
+      "text": " So is this neighborhood highly walkable?"
+    },
+    {
+      "start": 231.62,
+      "end": 235.62,
+      "text": " You know, can you just walk to the grocery store and walk to school or do you need to drive?"
+    },
+    {
+      "start": 235.62,
+      "end": 237.62,
+      "text": " Some people prefer highly walkable neighborhoods."
+    },
+    {
+      "start": 237.62,
+      "end": 245.62,
+      "text": " And then the zip code as well as, you know, the wealth maybe tells you, right,"
+    },
+    {
+      "start": 245.62,
+      "end": 248.62,
+      "text": " certainly in the United States but some other countries as well,"
+    },
+    {
+      "start": 248.62,
+      "end": 252.62,
+      "text": " tells you how good is the school quality."
+    },
+    {
+      "start": 252.62,
+      "end": 259.62,
+      "text": " So each of these little circles I'm drawing can be one of those ReLU rectified linear"
+    },
+    {
+      "start": 259.62,
+      "end": 262.62,
+      "text": " units or some other slightly non-linear function."
+    },
+    {
+      "start": 262.62,
+      "end": 266.62,
+      "text": " So that based on the size and number of bedrooms, you can estimate the family size,"
+    },
+    {
+      "start": 266.62,
+      "end": 269.62,
+      "text": " the zip code, estimate walkability based on zip code and wealth,"
+    },
+    {
+      "start": 269.62,
+      "end": 271.62,
+      "text": " you can estimate the school quality."
+    },
+    {
+      "start": 271.62,
+      "end": 276.62,
+      "text": " And then finally, you might think that, well, the way people decide how much they're willing to pay for a house"
+    },
+    {
+      "start": 276.62,
+      "end": 278.62,
+      "text": " is they look at the things that really matter to them."
+    },
+    {
+      "start": 278.62,
+      "end": 282.62,
+      "text": " In this case, family size, walkability, and school quality."
+    },
+    {
+      "start": 282.62,
+      "end": 285.62,
+      "text": " And that helps you predict the price."
+    },
+    {
+      "start": 285.62,
+      "end": 297.62,
+      "text": " So in this example, x is all of these four inputs and y is the price you're trying to predict."
+    },
+    {
+      "start": 297.62,
+      "end": 304.62,
+      "text": " And so by stacking together a few of the single neurons or the simple predictors we had from the previous slide,"
+    },
+    {
+      "start": 304.62,
+      "end": 306.62,
+      "text": " we now have a slightly larger neural network."
+    },
+    {
+      "start": 306.62,
+      "end": 312.24,
+      "text": " Part of the magic of a neural network is that when you implement it, you need to give it,"
+    },
+    {
+      "start": 312.62,
+      "end": 319.62,
+      "text": " just the input x and the output y for a number of examples in your training set."
+    },
+    {
+      "start": 319.62,
+      "end": 324.62,
+      "text": " And then all these things in the middle, it will figure out by itself."
+    },
+    {
+      "start": 324.62,
+      "end": 331.62,
+      "text": " So what you actually implement is this, where here you have a neural network with four inputs."
+    },
+    {
+      "start": 331.62,
+      "end": 339.62,
+      "text": " So the input features might be the size, number of bedrooms, the zip code or postal code, and the wealth of the neighborhood."
+    },
+    {
+      "start": 339.62,
+      "end": 349.62,
+      "text": " And so given these input features, the job of the neural network will be to predict the price y."
+    },
+    {
+      "start": 349.62,
+      "end": 356.62,
+      "text": " And notice also that each of these circles, these are called hidden units in the neural network,"
+    },
+    {
+      "start": 356.62,
+      "end": 361.62,
+      "text": " that each of them takes as inputs, all four input features."
+    },
+    {
+      "start": 361.62,
+      "end": 367.62,
+      "text": " So for example, rather than saying this first node represents family size,"
+    },
+    {
+      "start": 367.62,
+      "end": 372.62,
+      "text": " and family size depends only on the features x1 and x2, right?"
+    },
+    {
+      "start": 372.62,
+      "end": 377.62,
+      "text": " Instead we're going to say, well, neural network, you decide whatever you want this node to be,"
+    },
+    {
+      "start": 377.62,
+      "end": 380.62,
+      "text": " and we'll give you all four input features to compute whatever you want."
+    },
+    {
+      "start": 380.62,
+      "end": 388.62,
+      "text": " So we say that the layers, that is this input layer and this layer in the middle of the neural network are densely connected,"
+    },
+    {
+      "start": 388.62,
+      "end": 393.62,
+      "text": " because every input feature is connected to every one of these circles in the middle."
+    },
+    {
+      "start": 393.62,
+      "end": 398.62,
+      "text": " And the remarkable thing about neural networks is that given enough data about x and y,"
+    },
+    {
+      "start": 398.62,
+      "end": 406.62,
+      "text": " given enough training examples with both x and y, neural networks are remarkably good at figuring out functions that accurately map from x to y."
+    },
+    {
+      "start": 406.62,
+      "end": 410.62,
+      "text": " So that's a basic neural network."
+    },
+    {
+      "start": 410.62,
+      "end": 413.62,
+      "text": " It turns out that as you build out your own neural networks,"
+    },
+    {
+      "start": 413.62,
+      "end": 418.62,
+      "text": " you probably find them to be most useful, most powerful in supervised learning settings,"
+    },
+    {
+      "start": 418.62,
+      "end": 422.62,
+      "text": " meaning that you're trying to take an input x and map it to some output y,"
+    },
+    {
+      "start": 422.62,
+      "end": 425.62,
+      "text": " like we just saw in the housing price prediction example."
+    },
+    {
+      "start": 425.62,
+      "end": 429.62,
+      "text": " In the next video, let's go over some more examples of supervised learning,"
+    },
+    {
+      "start": 429.62,
+      "end": 435.62,
+      "text": " and some examples of where you might find neural networks to be incredibly helpful for your applications as well."
+    },
+    {
+      "start": 435.62,
+      "end": 436.744125,
+      "text": " So we hope that this is"
+    }
+  ],
+  "language": "en",
+  "source": "2.02 - 1.1什么是神经网络(Av73508149,P2).mp4",
+  "model": "large-v3-turbo.pt"
+}
