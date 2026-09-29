@@ -9,8 +9,6 @@ Launch:
 from __future__ import annotations
 
 import json
-import os
-import sys
 import time
 import urllib.parse
 import urllib.request
@@ -47,20 +45,60 @@ LLM_API_BASE = CFG.get("LLM_API_BASE", "https://api.deepseek.com/v1")
 LLM_MODEL = CFG.get("LLM_MODEL", "deepseek-chat")
 STATIC_PORT = int(CFG.get("STATIC_PORT", "8502"))
 
-PLAYER_BASE_URL = f"http://127.0.0.1:{STATIC_PORT}/player/player.html"
+# Use a relative-style base so links work from any host (localhost or remote).
+# Streamlit serves on its own port; the static server is on STATIC_PORT.
+# We build the full URL at render time using the browser's current host.
+_PLAYER_PATH = f":{STATIC_PORT}/player/player.html"
+
+
+def _player_url(path_suffix: str = "") -> str:
+    """Build player URL using the current request's hostname.
+
+    Falls back to 127.0.0.1 when no active session (e.g. during caching).
+    This ensures links work correctly when accessed from remote machines.
+    """
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        ctx = get_script_run_ctx()
+        if ctx and ctx.session_client:
+            host_header = ctx.session_client.request.headers.get("Host", f"127.0.0.1:{STATIC_PORT}")
+            hostname = host_header.split(":")[0]
+            return f"http://{hostname}:{STATIC_PORT}/player/player.html{path_suffix}"
+    except Exception:
+        pass
+    return f"http://127.0.0.1:{STATIC_PORT}/player/player.html{path_suffix}"
 
 # ---------------------------------------------------------------- Page config
 st.set_page_config(page_title="Moogle - Video Content Locator", layout="wide")
 
 # ---------------------------------------------------------------- LLM call
 
-def call_llm(question: str, results: list[vl.SearchResult]) -> str:
-    """Generate an LLM response from search results. Falls back to template if no API key."""
+def _build_context(results: list[vl.SearchResult]) -> str:
+    """Build context string from search results."""
     context_parts = []
     for i, r in enumerate(results, 1):
         src = f" [{r.video_name}]" if r.video_name else ""
         context_parts.append(f"[{i}] ({r.start:.1f}s){src} {r.text}")
-    context = "\n".join(context_parts)
+    return "\n".join(context_parts)
+
+
+def _build_prompt(question: str, context: str) -> str:
+    """Build the LLM prompt."""
+    return (
+        f"User question: {question}\n\n"
+        f"The following are relevant segments retrieved from video transcripts:\n{context}\n\n"
+        "Please answer the user's question based on these segments. "
+        "If the segments are insufficient, say so. "
+        "Reply in the same language as the question. Be concise and professional."
+    )
+
+
+def call_llm_stream(question: str, results: list[vl.SearchResult]):
+    """Stream LLM response token by token. Yields str chunks.
+
+    Falls back to a single yield of template text if no API key is configured.
+    """
+    context = _build_context(results)
 
     if not LLM_API_KEY:
         lines = [f"Found {len(results)} relevant segment(s) in the transcript library:\n"]
@@ -70,20 +108,16 @@ def call_llm(question: str, results: list[vl.SearchResult]) -> str:
             src = f" ({r.video_name})" if r.video_name else ""
             lines.append(f"**[{i}]** {mins:02d}:{secs:02d}{src} — {r.text[:120]}{'...' if len(r.text) > 120 else ''}")
         lines.append("\n> Configure `LLM_API_KEY` in `.env` to enable AI-powered summaries.")
-        return "\n\n".join(lines)
+        yield "\n\n".join(lines)
+        return
 
-    prompt = (
-        f"User question: {question}\n\n"
-        f"The following are relevant segments retrieved from video transcripts:\n{context}\n\n"
-        "Please answer the user's question based on these segments. "
-        "If the segments are insufficient, say so. "
-        "Reply in the same language as the question. Be concise and professional."
-    )
+    prompt = _build_prompt(question, context)
     payload = json.dumps({
         "model": LLM_MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3,
         "max_tokens": 1024,
+        "stream": True,
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -95,11 +129,26 @@ def call_llm(question: str, results: list[vl.SearchResult]) -> str:
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"]
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            for raw_line in resp:
+                line = raw_line.decode("utf-8").strip()
+                if not line:
+                    continue
+                # SSE lines are prefixed with "data: "
+                if line.startswith("data: "):
+                    data_str = line[6:]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
+                    except json.JSONDecodeError:
+                        continue
     except Exception as exc:
-        return f"LLM call failed: {exc}\n\nRaw search results:\n\n{context}"
+        yield f"LLM call failed: {exc}\n\nRaw search results:\n\n{context}"
 
 
 # ---------------------------------------------------------------- Data loading
@@ -137,6 +186,11 @@ if "messages" not in st.session_state:
 with st.sidebar:
     st.title("Moogle")
     st.caption("Search any moment across all videos")
+
+    if st.button("➕ New Chat", use_container_width=True, type="primary"):
+        st.session_state.messages = []
+        st.rerun()
+
     st.divider()
 
     # Video list with links to player page (scrollable, filterable)
@@ -165,7 +219,7 @@ with st.sidebar:
             segs = 0
 
         video_abs = f"/video/{urllib.parse.quote(v.name)}"
-        link = (f"{PLAYER_BASE_URL}?src={video_abs}&t=0"
+        link = (f"{_player_url()}?src={video_abs}&t=0"
                 f"&title={urllib.parse.quote(v.stem)}")
         list_html += (
             f'<div style="padding:6px 0; border-bottom:1px solid rgba(128,128,128,0.2);">'
@@ -228,11 +282,7 @@ if question := st.chat_input("Ask a question about the video content..."):
         with st.chat_message("assistant"):
             st.markdown(reply)
     else:
-        # LLM response
-        with st.spinner("Generating response..."):
-            llm_reply = call_llm(question, results)
-
-        # Build citation links
+        # Build citation links (prepared ahead, appended after streaming)
         cite_lines = []
         for i, r in enumerate(results, 1):
             mins = int(r.start // 60)
@@ -241,7 +291,7 @@ if question := st.chat_input("Ask a question about the video content..."):
             video_abs = f"/video/{urllib.parse.quote(r.video_name + '.mp4')}"
             cited = urllib.parse.quote(r.text[:200])
             link = (
-                f"{PLAYER_BASE_URL}?src={video_abs}"
+                f"{_player_url()}?src={video_abs}"
                 f"&t={r.start:.2f}"
                 f"&title={urllib.parse.quote(r.video_name)}"
                 f"&cite={cited}"
@@ -253,9 +303,26 @@ if question := st.chat_input("Ask a question about the video content..."):
                 f"— {r.text[:100]}{'...' if len(r.text) > 100 else ''} "
                 f"`relevance {score_pct}%`"
             )
+        citations_md = "\n\n---\n\n**Reference Segments:**\n\n" + "\n\n".join(cite_lines)
 
-        full_reply = llm_reply + "\n\n---\n\n**Reference Segments:**\n\n" + "\n\n".join(cite_lines)
-        st.session_state.messages.append({"role": "assistant", "content": full_reply})
-
+        # Stream LLM response token by token
         with st.chat_message("assistant"):
-            st.markdown(full_reply, unsafe_allow_html=True)
+            placeholder = st.empty()
+            llm_reply = ""
+            last_render_time = 0.0
+            render_interval = 0.05  # throttle: max 20 renders/sec
+            try:
+                for token in call_llm_stream(question, results):
+                    llm_reply += token
+                    now = time.monotonic()
+                    if now - last_render_time >= render_interval:
+                        placeholder.markdown(llm_reply, unsafe_allow_html=True)
+                        last_render_time = now
+            except Exception as exc:
+                llm_reply += f"\n\n*Stream interrupted: {exc}*"
+
+            # Final render: flush any remaining tokens + append citations
+            full_reply = llm_reply + citations_md
+            placeholder.markdown(full_reply, unsafe_allow_html=True)
+
+        st.session_state.messages.append({"role": "assistant", "content": full_reply})

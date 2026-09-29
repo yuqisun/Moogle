@@ -14,8 +14,21 @@ if (Test-Path "$root\.env") {
     }
 }
 
-Write-Host "Starting static file server on port $staticPort ..." -ForegroundColor Cyan
-$staticJob = Start-Process -FilePath $py -ArgumentList "-m", "http.server", $staticPort, "--bind", "127.0.0.1", "--directory", "$root\static" -PassThru -WindowStyle Hidden
+# Check if ports are already in use
+foreach ($port in @(8501, $staticPort)) {
+    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if ($conn) {
+        $pid_ = ($conn | Select-Object -First 1).OwningProcess
+        $proc = Get-Process -Id $pid_ -ErrorAction SilentlyContinue
+        Write-Host "ERROR: Port $port is already in use by PID $pid_ ($($proc.ProcessName))." -ForegroundColor Red
+        Write-Host "       Stop the existing process or close the other Moogle instance first." -ForegroundColor Red
+        exit 1
+    }
+}
+
+Write-Host "Starting static file server on port $staticPort (Range requests enabled) ..." -ForegroundColor Cyan
+$staticArgs = @("$root\static_server.py", "$staticPort", "--bind", "127.0.0.1", "--directory", "$root\static")
+$staticJob = Start-Process -FilePath $py -ArgumentList $staticArgs -PassThru -WindowStyle Hidden
 
 Write-Host "Starting Streamlit on port 8501 ..." -ForegroundColor Cyan
 & $streamlit run streamlit_app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true --browser.gatherUsageStats false

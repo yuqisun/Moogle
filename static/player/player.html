@@ -346,7 +346,15 @@
                     var track = document.getElementById('subtitleTrack');
                     track.src = '/subtitles/' + srcFilename + '_en.vtt';
 
-                    video.src = videoSrc;
+                    // Use Media Fragment URI to hint the browser to start
+                    // loading from the target time. This is far more reliable
+                    // than setting currentTime after load, especially on first
+                    // visit when nothing is cached.
+                    var fragmentSrc = videoSrc;
+                    if (startTime > 0) {
+                        fragmentSrc += '#t=' + startTime;
+                    }
+                    video.src = fragmentSrc;
                     video.load();
 
                     var mins = Math.floor(startTime / 60);
@@ -392,10 +400,36 @@
                     }
                     info.innerHTML = html;
 
-                    // Replay button
+                    // Replay button — seek then play, with fallback if not ready
                     document.getElementById('btnReplay').addEventListener('click', function() {
-                        video.currentTime = startTime;
-                        video.play();
+                        function doPlay() {
+                            var hasPlayed = false;
+                            video.currentTime = startTime;
+                            // Wait for seek to complete before playing
+                            var onSeeked = function() {
+                                if (hasPlayed) return;
+                                hasPlayed = true;
+                                video.removeEventListener('seeked', onSeeked);
+                                video.play();
+                            };
+                            video.addEventListener('seeked', onSeeked);
+                            // Fallback: if seeked doesn't fire within 500ms, play anyway
+                            setTimeout(function() {
+                                if (hasPlayed) return;
+                                hasPlayed = true;
+                                video.removeEventListener('seeked', onSeeked);
+                                video.play();
+                            }, 500);
+                        }
+                        if (video.readyState >= 2) {
+                            doPlay();
+                        } else {
+                            var onReady = function() {
+                                video.removeEventListener('canplay', onReady);
+                                doPlay();
+                            };
+                            video.addEventListener('canplay', onReady);
+                        }
                     });
 
 
@@ -407,10 +441,50 @@
                         }
                     });
 
-                    // Seek to start time once data is ready
-                    video.addEventListener('loadeddata', function() {
-                        video.currentTime = startTime;
-                    });
+                    // Robust seek: try on multiple events and verify the seek
+                    // actually stuck. The Media Fragment URI (#t=...) handles
+                    // most cases, but we still need an explicit fallback because
+                    // some browsers/servers ignore fragments. We retry up to 5
+                    // times across different readiness events.
+                    if (startTime > 0) {
+                        var seekAttempts = 0;
+                        var maxSeekAttempts = 5;
+
+                        function trySeek() {
+                            if (seekAttempts >= maxSeekAttempts) return;
+                            // Check if already at the right position (±1s tolerance)
+                            if (Math.abs(video.currentTime - startTime) < 1) return;
+                            seekAttempts++;
+                            video.currentTime = startTime;
+                        }
+
+                        // Verify seek succeeded; if not, retry on next opportunity.
+                        // Auto-remove after 5s to prevent listener leak.
+                        var seekVerifyTimer = setTimeout(function() {
+                            video.removeEventListener('seeked', onSeekedVerify);
+                        }, 5000);
+                        function onSeekedVerify() {
+                            if (Math.abs(video.currentTime - startTime) < 1) {
+                                // Seek confirmed — stop listening
+                                clearTimeout(seekVerifyTimer);
+                                video.removeEventListener('seeked', onSeekedVerify);
+                            }
+                        }
+                        video.addEventListener('seeked', onSeekedVerify);
+
+                        video.addEventListener('loadedmetadata', trySeek);
+                        video.addEventListener('loadeddata', trySeek);
+                        video.addEventListener('canplay', trySeek);
+                        video.addEventListener('canplaythrough', trySeek);
+
+                        // Final safety net: after 3 seconds, force one more seek
+                        // in case all events fired before enough data was available
+                        setTimeout(function() {
+                            if (Math.abs(video.currentTime - startTime) >= 1) {
+                                video.currentTime = startTime;
+                            }
+                        }, 3000);
+                    }
                 } else {
                     info.innerHTML = 'No video source specified.';
                 }
