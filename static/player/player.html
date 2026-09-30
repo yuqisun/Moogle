@@ -334,6 +334,15 @@
                 var title = params.get('title') || 'Moogle Video Player';
                 var citedText = params.get('cite') || '';
 
+                // Transcript stem: the base name for subtitle/analysis/KG files.
+                // Passed by Streamlit to handle non-English transcripts correctly
+                // (e.g. "xxx_zh" instead of hardcoded "xxx_en").
+                // Falls back to deriving from video filename + "_en" for backward compat.
+                var transcriptStem = params.get('stem') || '';
+                if (!transcriptStem && videoSrc) {
+                    transcriptStem = videoSrc.split('/').pop().replace(/\.[^.]+$/, '') + '_en';
+                }
+
                 var video = document.getElementById('moogleVideo');
                 var info = document.getElementById('playerInfo');
                 var titleEl = document.getElementById('playerTitle');
@@ -342,9 +351,8 @@
 
                 if (videoSrc) {
                     // Set subtitle track src BEFORE video load
-                    var srcFilename = videoSrc.split('/').pop().replace(/\.[^.]+$/, '');
                     var track = document.getElementById('subtitleTrack');
-                    track.src = '/subtitles/' + srcFilename + '_en.vtt';
+                    track.src = '/subtitles/' + transcriptStem + '.vtt';
 
                     // Use Media Fragment URI to hint the browser to start
                     // loading from the target time. This is far more reliable
@@ -495,14 +503,20 @@
                 var params = new URLSearchParams(window.location.search);
                 var analysisUrl = params.get('analysis');
 
-                // Auto-derive analysis URL from src if not explicitly provided
-                // e.g. src=/video/xxx.mp4 -> /txt/xxx_en_analysis.json
+                // Auto-derive analysis URL from stem param if not explicitly provided.
+                // The stem param carries the transcript filename (e.g. "xxx_en" or "xxx_zh"),
+                // ensuring correct lookup regardless of language.
                 if (!analysisUrl) {
-                    var src = params.get('src') || '';
-                    if (src) {
-                        var filename = src.split('/').pop();           // "xxx.mp4"
-                        var stem = filename.replace(/\.[^.]+$/, '');   // "xxx"
-                        analysisUrl = '/txt/' + stem + '_en_analysis.json';
+                    var tStem = params.get('stem') || '';
+                    if (!tStem) {
+                        // Fallback: derive from video src + "_en" for backward compat
+                        var src = params.get('src') || '';
+                        if (src) {
+                            tStem = src.split('/').pop().replace(/\.[^.]+$/, '') + '_en';
+                        }
+                    }
+                    if (tStem) {
+                        analysisUrl = '/txt/' + tStem + '_analysis.json';
                     }
                 }
 
@@ -599,13 +613,17 @@
                 var params = new URLSearchParams(window.location.search);
                 var kgUrl = params.get('kg');
 
-                // Auto-derive KG URL from src if not explicitly provided
+                // Auto-derive KG URL from stem param if not explicitly provided
                 if (!kgUrl) {
-                    var src = params.get('src') || '';
-                    if (src) {
-                        var filename = src.split('/').pop();
-                        var stem = filename.replace(/\.[^.]+$/, '');
-                        kgUrl = '/txt/' + stem + '_en_kg.json';
+                    var tStem = params.get('stem') || '';
+                    if (!tStem) {
+                        var src = params.get('src') || '';
+                        if (src) {
+                            tStem = src.split('/').pop().replace(/\.[^.]+$/, '') + '_en';
+                        }
+                    }
+                    if (tStem) {
+                        kgUrl = '/txt/' + tStem + '_kg.json';
                     }
                 }
 

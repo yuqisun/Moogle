@@ -219,8 +219,14 @@ with st.sidebar:
             segs = 0
 
         video_abs = f"/video/{urllib.parse.quote(v.name)}"
+        # Pass the transcript stem so the player can locate subtitles/analysis/KG
+        # files correctly regardless of language suffix (_en, _zh, etc.)
+        tr_stem = ""
+        if tr_path:
+            tr_stem = Path(tr_path).stem
         link = (f"{_player_url()}?src={video_abs}&t=0"
-                f"&title={urllib.parse.quote(v.stem)}")
+                f"&title={urllib.parse.quote(v.stem)}"
+                f"&stem={urllib.parse.quote(tr_stem)}")
         list_html += (
             f'<div style="padding:6px 0; border-bottom:1px solid rgba(128,128,128,0.2);">'
             f'<a href="{link}" target="_blank" style="text-decoration:none; color:inherit;">'
@@ -290,11 +296,14 @@ if question := st.chat_input("Ask a question about the video content..."):
             time_str = f"{mins:02d}:{secs:02d}"
             video_abs = f"/video/{urllib.parse.quote(r.video_name + '.mp4')}"
             cited = urllib.parse.quote(r.text[:200])
+            # Pass transcript stem for correct subtitle/analysis/KG file lookup
+            tr_stem = Path(r.transcript_path).stem if r.transcript_path else ""
             link = (
                 f"{_player_url()}?src={video_abs}"
                 f"&t={r.start:.2f}"
                 f"&title={urllib.parse.quote(r.video_name)}"
                 f"&cite={cited}"
+                f"&stem={urllib.parse.quote(tr_stem)}"
             )
             score_pct = int(r.score * 100)
             src_label = f" ({r.video_name})" if r.video_name else ""
