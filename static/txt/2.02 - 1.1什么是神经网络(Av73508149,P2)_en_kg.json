@@ -1,0 +1,331 @@
+{
+  "entities": [
+    {
+      "name": "deep learning",
+      "type": "concept"
+    },
+    {
+      "name": "neural network",
+      "type": "concept"
+    },
+    {
+      "name": "training",
+      "type": "method"
+    },
+    {
+      "name": "housing price prediction",
+      "type": "application"
+    },
+    {
+      "name": "linear regression",
+      "type": "method"
+    },
+    {
+      "name": "ReLU function",
+      "type": "concept"
+    },
+    {
+      "name": "Rectified Linear Unit",
+      "type": "concept"
+    },
+    {
+      "name": "neuron",
+      "type": "concept"
+    },
+    {
+      "name": "input layer",
+      "type": "concept"
+    },
+    {
+      "name": "hidden layer",
+      "type": "concept"
+    },
+    {
+      "name": "output layer",
+      "type": "concept"
+    },
+    {
+      "name": "hidden unit",
+      "type": "concept"
+    },
+    {
+      "name": "supervised learning",
+      "type": "concept"
+    },
+    {
+      "name": "size",
+      "type": "property"
+    },
+    {
+      "name": "number of bedrooms",
+      "type": "property"
+    },
+    {
+      "name": "zip code",
+      "type": "property"
+    },
+    {
+      "name": "wealth",
+      "type": "property"
+    },
+    {
+      "name": "family size",
+      "type": "property"
+    },
+    {
+      "name": "walkability",
+      "type": "property"
+    },
+    {
+      "name": "school quality",
+      "type": "property"
+    },
+    {
+      "name": "price",
+      "type": "property"
+    },
+    {
+      "name": "input x",
+      "type": "concept"
+    },
+    {
+      "name": "output y",
+      "type": "concept"
+    },
+    {
+      "name": "training set",
+      "type": "concept"
+    },
+    {
+      "name": "densely connected",
+      "type": "property"
+    },
+    {
+      "name": "Lego brick",
+      "type": "example"
+    },
+    {
+      "name": "very large",
+      "type": "value"
+    },
+    {
+      "name": "straight line",
+      "type": "value"
+    },
+    {
+      "name": "max of zero",
+      "type": "value"
+    },
+    {
+      "name": "stacking neurons",
+      "type": "value"
+    }
+  ],
+  "triples": [
+    {
+      "subject": "deep learning",
+      "relation": "refers to",
+      "object": "training"
+    },
+    {
+      "subject": "training",
+      "relation": "applied to",
+      "object": "neural network"
+    },
+    {
+      "subject": "neural network",
+      "relation": "can be",
+      "object": "very large"
+    },
+    {
+      "subject": "housing price prediction",
+      "relation": "is an example of",
+      "object": "neural network"
+    },
+    {
+      "subject": "housing price prediction",
+      "relation": "uses",
+      "object": "size"
+    },
+    {
+      "subject": "housing price prediction",
+      "relation": "predicts",
+      "object": "price"
+    },
+    {
+      "subject": "linear regression",
+      "relation": "fits",
+      "object": "straight line"
+    },
+    {
+      "subject": "neural network",
+      "relation": "uses",
+      "object": "ReLU function"
+    },
+    {
+      "subject": "ReLU function",
+      "relation": "stands for",
+      "object": "Rectified Linear Unit"
+    },
+    {
+      "subject": "ReLU function",
+      "relation": "computes",
+      "object": "max of zero"
+    },
+    {
+      "subject": "neuron",
+      "relation": "implements",
+      "object": "ReLU function"
+    },
+    {
+      "subject": "neuron",
+      "relation": "takes",
+      "object": "input x"
+    },
+    {
+      "subject": "neuron",
+      "relation": "outputs",
+      "object": "output y"
+    },
+    {
+      "subject": "neural network",
+      "relation": "consists of",
+      "object": "neuron"
+    },
+    {
+      "subject": "neural network",
+      "relation": "is formed by",
+      "object": "stacking neurons"
+    },
+    {
+      "subject": "neuron",
+      "relation": "is like",
+      "object": "Lego brick"
+    },
+    {
+      "subject": "neural network",
+      "relation": "has",
+      "object": "input layer"
+    },
+    {
+      "subject": "neural network",
+      "relation": "has",
+      "object": "hidden layer"
+    },
+    {
+      "subject": "neural network",
+      "relation": "has",
+      "object": "output layer"
+    },
+    {
+      "subject": "hidden layer",
+      "relation": "contains",
+      "object": "hidden unit"
+    },
+    {
+      "subject": "hidden unit",
+      "relation": "takes as input",
+      "object": "input x"
+    },
+    {
+      "subject": "input layer",
+      "relation": "is",
+      "object": "densely connected"
+    },
+    {
+      "subject": "hidden layer",
+      "relation": "is",
+      "object": "densely connected"
+    },
+    {
+      "subject": "neural network",
+      "relation": "is used for",
+      "object": "supervised learning"
+    },
+    {
+      "subject": "supervised learning",
+      "relation": "maps",
+      "object": "input x"
+    },
+    {
+      "subject": "supervised learning",
+      "relation": "maps to",
+      "object": "output y"
+    },
+    {
+      "subject": "neural network",
+      "relation": "requires",
+      "object": "training set"
+    },
+    {
+      "subject": "training set",
+      "relation": "contains",
+      "object": "input x"
+    },
+    {
+      "subject": "training set",
+      "relation": "contains",
+      "object": "output y"
+    },
+    {
+      "subject": "neural network",
+      "relation": "figures out",
+      "object": "hidden layer"
+    },
+    {
+      "subject": "family size",
+      "relation": "depends on",
+      "object": "size"
+    },
+    {
+      "subject": "family size",
+      "relation": "depends on",
+      "object": "number of bedrooms"
+    },
+    {
+      "subject": "walkability",
+      "relation": "depends on",
+      "object": "zip code"
+    },
+    {
+      "subject": "school quality",
+      "relation": "depends on",
+      "object": "zip code"
+    },
+    {
+      "subject": "school quality",
+      "relation": "depends on",
+      "object": "wealth"
+    },
+    {
+      "subject": "price",
+      "relation": "depends on",
+      "object": "family size"
+    },
+    {
+      "subject": "price",
+      "relation": "depends on",
+      "object": "walkability"
+    },
+    {
+      "subject": "price",
+      "relation": "depends on",
+      "object": "school quality"
+    },
+    {
+      "subject": "neural network",
+      "relation": "predicts",
+      "object": "price"
+    },
+    {
+      "subject": "neural network",
+      "relation": "is powerful in",
+      "object": "supervised learning"
+    }
+  ],
+  "_source": "2.02 - 1.1什么是神经网络(Av73508149,P2)_en.json",
+  "_model": "deepseek-chat",
+  "_extracted_at": "2026-09-29T16:42:45",
+  "_entity_count": 30,
+  "_triple_count": 40
+}
