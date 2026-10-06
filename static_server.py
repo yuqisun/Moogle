@@ -23,6 +23,33 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler with HTTP Range (partial content) support."""
 
+    def do_GET(self):
+        """Serve a GET request, gracefully handling client disconnects.
+
+        The default implementation lets BrokenPipeError / ConnectionResetError
+        propagate when the client closes the connection mid-transfer (e.g.
+        browser seeking to a new position in a long video).  This kills the
+        keep-alive loop and produces noisy tracebacks.  We catch those errors
+        so the thread exits cleanly and the next request on a new connection
+        is served without issue.
+        """
+        f = self.send_head()
+        if f:
+            try:
+                self.copyfile(f, self.wfile)
+            except ConnectionError:
+                # Client disconnected (seek, tab close, network drop).
+                # Mark the connection as closed so the keep-alive loop stops.
+                self.close_connection = True
+            finally:
+                f.close()
+
+    def do_HEAD(self):
+        """Serve a HEAD request with the same disconnect safety as do_GET."""
+        f = self.send_head()
+        if f:
+            f.close()
+
     def send_head(self):
         """Override to intercept GET/HEAD and serve partial content when requested."""
         if self.command not in ("GET", "HEAD"):
