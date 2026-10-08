@@ -1,2 +1,7 @@
-# Streamlit frontend dependencies (video_locator.py uses stdlib only)
+# Streamlit frontend. (video_locator.py uses the standard library only.)
 streamlit==1.64.0
+
+# Imported directly by static_server.py. Ranges mirror Streamlit's own
+# constraints so pip can never hit a resolution conflict.
+starlette>=0.46.0,<2
+uvicorn>=0.30.0,<1

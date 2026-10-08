@@ -6,10 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Moogle - Video Player</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400">
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/hero-slider-style.css">
-    <link rel="stylesheet" href="css/magnific-popup.css">
-    <link rel="stylesheet" href="css/moogle-style.css">
+    <!-- Absolute paths: this page is served both at /moogle (canonical) and at
+         the legacy /player/player.html, and relative paths would break at one -->
+    <link rel="stylesheet" href="/player/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/player/css/hero-slider-style.css">
+    <link rel="stylesheet" href="/player/css/magnific-popup.css">
+    <link rel="stylesheet" href="/player/css/moogle-style.css">
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
         /* Only the video player element needs custom styling */
@@ -67,14 +69,6 @@
         }
         .tm-btn-teams:hover { background: #464b9e; color: #fff; }
         .tm-btn-teams svg { width: 18px; height: 18px; }
-        .tm-cited-text {
-            margin-top: 10px;
-            color: #ccc;
-            font-size: 0.92em;
-            line-height: 1.6;
-        }
-        .tm-cited-text strong { color: #f0c040; }
-        .tm-cited-text em { color: #ddd; }
 
         /* About page fixes */
         .tm-flex { flex-wrap: wrap; }
@@ -110,7 +104,10 @@
 
     <body>
 
-        <div class="cd-bg-video-wrapper" data-video="video/bangkok-city">
+        <!-- Static background image (see .cd-bg-video-wrapper in moogle-style.css).
+             The class name is inherited from the original template and no longer
+             implies a video. -->
+        <div class="cd-bg-video-wrapper">
         </div>
 
         <div class="cd-hero">
@@ -120,7 +117,7 @@
                 <div class="container">
                     <nav class="navbar">
                         <div class="tm-navbar-bg">
-                            <a class="navbar-brand text-uppercase" href="#">Moogle</a>
+                            <a class="navbar-brand text-uppercase" id="brandLink" href="#">Moogle</a>
                             <button class="navbar-toggler hidden-lg-up" type="button" data-toggle="collapse" data-target="#tmNavbar">
                                 &#9776;
                             </button>
@@ -318,30 +315,80 @@
         </div>
 
         <!-- JS files (same as original) -->
-        <script src="js/jquery-1.11.3.min.js"></script>
-        <script src="js/tether.min.js"></script>
-        <script src="js/isInViewport.min.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-        <script src="js/hero-slider-main.js"></script>
-        <script src="js/jquery.magnific-popup.min.js"></script>
+        <script src="/player/js/jquery-1.11.3.min.js"></script>
+        <script src="/player/js/tether.min.js"></script>
+        <script src="/player/js/isInViewport.min.js"></script>
+        <script src="/player/js/bootstrap.min.js"></script>
+        <script src="/player/js/hero-slider-main.js"></script>
+        <script src="/player/js/jquery.magnific-popup.min.js"></script>
 
         <script>
+            // --- Shared query-param resolution ---------------------------------
+            // The player URL carries only *identity*, never filesystem paths:
+            //   s  transcript stem (preferred — the video name is derived from it)
+            //   v  video filename  (used for a video that has no transcript)
+            //   x  video extension (only when it is not "mp4")
+            //   t  start time in seconds
+            // Legacy links using src / stem / title are still accepted; any
+            // other param (e.g. the retired cite) is simply ignored.
+            var MP = (function() {
+                var p = new URLSearchParams(window.location.search);
+
+                var explicitVideo = p.get('v') || '';    // caller says: no transcript
+                var legacySrc = p.get('src') || '';      // legacy link (path form)
+                var videoFile = explicitVideo || legacySrc;
+                if (videoFile && videoFile.indexOf('/') === -1) {
+                    videoFile = '/video/' + videoFile;   // "v" carries a bare filename
+                }
+
+                var stem = p.get('s') || p.get('stem') || '';
+                if (!stem && legacySrc && !explicitVideo) {
+                    // Legacy link only: transcript stem == video name + "_en", the
+                    // only suffix tools/transcribe_video.py emits.  When "v" is
+                    // given the caller already knows this video has no transcript,
+                    // so nothing is fabricated (avoids three guaranteed 404s).
+                    stem = videoFile.split('/').pop().replace(/\.[^.]+$/, '') + '_en';
+                }
+
+                if (!videoFile && stem) {
+                    // Video stem == transcript stem minus a trailing "_en".
+                    // Same rule as video_locator.Transcript.video_name.
+                    var vstem = stem.slice(-3) === '_en' ? stem.slice(0, -3) : stem;
+                    videoFile = '/video/' + vstem + '.' + (p.get('x') || 'mp4');
+                }
+
+                var derivedTitle = videoFile
+                    ? videoFile.split('/').pop().replace(/\.[^.]+$/, '')
+                    : 'Moogle Video Player';
+
+                return {
+                    videoSrc: videoFile,
+                    stem: stem,
+                    startTime: parseFloat(p.get('t')) || 0,
+                    title: p.get('title') || derivedTitle,
+                    // Minimal query for in-page links (e.g. chapter jumps), so the
+                    // transcript stem is preserved instead of being dropped.
+                    queryAt: function(t) {
+                        var q = new URLSearchParams();
+                        if (stem) {
+                            q.set('s', stem);
+                            var x = p.get('x');
+                            if (x) { q.set('x', x); }
+                        } else if (videoFile) {
+                            q.set('v', videoFile.split('/').pop());
+                        }
+                        q.set('t', t);
+                        return q.toString();
+                    }
+                };
+            })();
+
             // --- Video player logic (query params) ---
             (function() {
-                var params = new URLSearchParams(window.location.search);
-                var videoSrc = params.get('src');
-                var startTime = parseFloat(params.get('t')) || 0;
-                var title = params.get('title') || 'Moogle Video Player';
-                var citedText = params.get('cite') || '';
-
-                // Transcript stem: the base name for subtitle/analysis/KG files.
-                // Passed by Streamlit to handle non-English transcripts correctly
-                // (e.g. "xxx_zh" instead of hardcoded "xxx_en").
-                // Falls back to deriving from video filename + "_en" for backward compat.
-                var transcriptStem = params.get('stem') || '';
-                if (!transcriptStem && videoSrc) {
-                    transcriptStem = videoSrc.split('/').pop().replace(/\.[^.]+$/, '') + '_en';
-                }
+                var videoSrc = MP.videoSrc;
+                var startTime = MP.startTime;
+                var title = MP.title;
+                var transcriptStem = MP.stem;
 
                 var video = document.getElementById('moogleVideo');
                 var info = document.getElementById('playerInfo');
@@ -350,9 +397,12 @@
                 if (title) titleEl.textContent = title;
 
                 if (videoSrc) {
-                    // Set subtitle track src BEFORE video load
-                    var track = document.getElementById('subtitleTrack');
-                    track.src = '/subtitles/' + transcriptStem + '.vtt';
+                    // Set subtitle track src BEFORE video load — only when a
+                    // transcript stem was actually resolved.
+                    if (transcriptStem) {
+                        var track = document.getElementById('subtitleTrack');
+                        track.src = '/subtitles/' + transcriptStem + '.vtt';
+                    }
 
                     // Use Media Fragment URI to hint the browser to start
                     // loading from the target time. This is far more reliable
@@ -369,10 +419,6 @@
                     var secs = Math.floor(startTime % 60);
                     var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
 
-                    // Build the current page URL for sharing
-                    var shareUrl = window.location.href;
-                    var shareTitle = title + ' @ ' + timeStr;
-
                     // Replay button SVG (play icon)
                     var replaySvg = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 
@@ -387,26 +433,32 @@
                         + '<path d="M14.25 16.5C14.25 15.257 15.259 14.25 16.5 14.25H17.25C18.493 14.25 19.5 15.257 19.5 16.5V17.25H14.25V16.5Z" fill="white"/>'
                         + '</svg>';
 
-                    var teamsShareUrl = 'https://teams.microsoft.com/share?href='
-                        + encodeURIComponent(shareUrl)
-                        + '&text=' + encodeURIComponent(shareTitle)
-                        + '&preview=true';
-
                     var html = '<div class="tm-player-actions">'
                         + '<button class="tm-btn-replay" id="btnReplay" title="Replay from ' + timeStr + '">'
                         + replaySvg + ' Play from ' + timeStr + ' (' + startTime.toFixed(2) + 's)'
                         + '</button>'
-                        + '<a class="tm-btn-teams" href="' + teamsShareUrl + '" target="_blank" rel="noopener" title="Share to Microsoft Teams">'
+                        + '<a class="tm-btn-teams" id="btnTeams" href="#" target="_blank" rel="noopener" title="Share to Microsoft Teams">'
                         + teamsSvg + ' Share to Teams'
                         + '</a>'
 
                         + '</div>';
 
-                    if (citedText) {
-                        html += '<div class="tm-cited-text"><strong>Cited text:</strong><br><em>'
-                            + decodeURIComponent(citedText) + '</em></div>';
-                    }
                     info.innerHTML = html;
+
+                    // Teams share — uses the CURRENT playback position, not the
+                    // initial start time, so the shared link reflects where the
+                    // viewer actually is when they click.
+                    document.getElementById('btnTeams').addEventListener('click', function() {
+                        var t = video.currentTime || 0;
+                        var m = Math.floor(t / 60), s = Math.floor(t % 60);
+                        var ts = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+                        var playerUrl = window.location.protocol + '//' + window.location.host
+                            + '/moogle?' + MP.queryAt(t);
+                        this.href = 'https://teams.microsoft.com/share?href='
+                            + encodeURIComponent(playerUrl)
+                            + '&text=' + encodeURIComponent(title + ' @ ' + ts)
+                            + '&preview=true';
+                    });
 
                     // Replay button — seek then play, with fallback if not ready
                     document.getElementById('btnReplay').addEventListener('click', function() {
@@ -503,21 +555,9 @@
                 var params = new URLSearchParams(window.location.search);
                 var analysisUrl = params.get('analysis');
 
-                // Auto-derive analysis URL from stem param if not explicitly provided.
-                // The stem param carries the transcript filename (e.g. "xxx_en" or "xxx_zh"),
-                // ensuring correct lookup regardless of language.
-                if (!analysisUrl) {
-                    var tStem = params.get('stem') || '';
-                    if (!tStem) {
-                        // Fallback: derive from video src + "_en" for backward compat
-                        var src = params.get('src') || '';
-                        if (src) {
-                            tStem = src.split('/').pop().replace(/\.[^.]+$/, '') + '_en';
-                        }
-                    }
-                    if (tStem) {
-                        analysisUrl = '/txt/' + tStem + '_analysis.json';
-                    }
+                // Auto-derive the analysis URL from the resolved transcript stem.
+                if (!analysisUrl && MP.stem) {
+                    analysisUrl = '/txt/' + MP.stem + '_analysis.json';
                 }
 
                 if (!analysisUrl) {
@@ -557,8 +597,6 @@
                         // Chapters (clickable — jumps to Player tab at the chapter's start time)
                         var chaptersEl = document.getElementById('aboutChapters');
                         var chapters = data.chapters || [];
-                        var videoSrc = params.get('src') || '';
-                        var videoTitle = params.get('title') || '';
                         chaptersEl.innerHTML = chapters.map(function(ch, idx) {
                             var mins = Math.floor(ch.start_seconds / 60);
                             var secs = Math.floor(ch.start_seconds % 60);
@@ -566,9 +604,9 @@
                             var endMins = Math.floor(ch.end_seconds / 60);
                             var endSecs = Math.floor(ch.end_seconds % 60);
                             var endTimeStr = (endMins < 10 ? '0' : '') + endMins + ':' + (endSecs < 10 ? '0' : '') + endSecs;
-                            var playerLink = 'player.html?src=' + encodeURIComponent(videoSrc)
-                                + '&t=' + ch.start_seconds
-                                + '&title=' + encodeURIComponent(videoTitle);
+                            // Carry the identity params so the transcript stem is not
+                            // lost (this used to drop "stem", breaking non-English videos).
+                            var playerLink = '/moogle?' + MP.queryAt(ch.start_seconds);
                             return '<div style="padding:8px 0; border-bottom:1px solid #eee; display:flex; align-items:baseline; gap:12px;">'
                                 + '<a href="' + playerLink + '" style="color:#856729; font-weight:600; white-space:nowrap; min-width:110px;">'
                                 + timeStr + ' - ' + endTimeStr + '</a>'
@@ -613,18 +651,9 @@
                 var params = new URLSearchParams(window.location.search);
                 var kgUrl = params.get('kg');
 
-                // Auto-derive KG URL from stem param if not explicitly provided
-                if (!kgUrl) {
-                    var tStem = params.get('stem') || '';
-                    if (!tStem) {
-                        var src = params.get('src') || '';
-                        if (src) {
-                            tStem = src.split('/').pop().replace(/\.[^.]+$/, '') + '_en';
-                        }
-                    }
-                    if (tStem) {
-                        kgUrl = '/txt/' + tStem + '_kg.json';
-                    }
+                // Auto-derive the KG URL from the resolved transcript stem.
+                if (!kgUrl && MP.stem) {
+                    kgUrl = '/txt/' + MP.stem + '_kg.json';
                 }
 
                 if (!kgUrl) {
@@ -739,22 +768,14 @@
                 }
             }
 
-            function uploadVideo() {
-                var videoWrapper = $('.cd-bg-video-wrapper');
-                if (videoWrapper.is(':visible')) {
-                    var videoUrl = videoWrapper.data('video'),
-                    video = $('<video autoplay loop><source src="' + videoUrl + '.mp4" type="video/mp4" /></video>');
-                    video.appendTo(videoWrapper);
-                    if (videoWrapper.parent('.cd-bg-video.selected').length > 0) video.get(0).play();
-                }
-            }
-
             $(window).load(function() {
-                adjustHeightOfPage(1);
-
-                if ($(window).width() > 800) {
-                    uploadVideo();
+                // Brand link → Streamlit chat (same host, port 8501)
+                var brand = document.getElementById('brandLink');
+                if (brand) {
+                    brand.href = window.location.protocol + '//' + window.location.hostname + ':8501/';
                 }
+
+                adjustHeightOfPage(1);
 
                 $('.gallery-first').magnificPopup({
                     delegate: 'a', type: 'image', gallery: { enabled: true }
@@ -773,9 +794,6 @@
                     setTimeout(function() {
                         adjustHeightOfPage(currentPageNo);
                     }, 3000);
-                    if ($(window).width() > 800) {
-                        uploadVideo();
-                    }
                 });
 
                 // Auto-play removed: Chrome blocks play() without user interaction.

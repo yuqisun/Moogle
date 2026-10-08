@@ -8,6 +8,7 @@ __pycache__/
 
 # IDE
 .idea/
+.vscode/
 
 # Environment (contains API keys)
 .env
@@ -19,9 +20,21 @@ static/video/*.mp4
 Thumbs.db
 .DS_Store
 
-# Temp
+# Temp / build artifacts
 _tmp_audio/
 *.log
+.tmp/
+.acl-recovery/
+pip-build-tracker-*/
+pip-ephem-wheel-cache-*/
+pip-install-*/
+pip-metadata-*/
+pip-unpack-*/
+
+# DSH / agent tooling
+.superpowers/
 
 # All video files
 *.mp4
+
+docs/

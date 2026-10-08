@@ -13,29 +13,17 @@ body {
 	overflow-x: hidden;
 }
 
+/* Static background image.  The template this came from played a looping
+   background video on wide screens and fell back to this image on narrow ones;
+   that video file never existed here, so the image is used at every width. */
 .cd-bg-video-wrapper {
-	background: none;
+	background: url('../img/bangkok-city.jpg') #000 no-repeat center center fixed;
+	background-size: cover;
 	position: fixed;
 	width: 100vw;
 	height: 100vh;
 	top: 0;
 	left: 0;
-}
-
-/* https://codepen.io/dudleystorey/pen/knqyK */
-.cd-bg-video-wrapper video { 
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    z-index: -100;
-    transform: translateX(-50%) translateY(-50%);
-	background: url('../img/bangkok-city.jpg') no-repeat;
-	background-size: cover;
-	transition: 1s opacity;
 }
 
 .tm-white { color: #FFFFFF; }
@@ -611,20 +599,4 @@ border-top-color: #f9c922; /* Chrome, Opera 15+, Safari 5+ */ animation: spin 1.
 	.tm-2-col-textbox-2 { margin-right: 15px; }	
 }
 
-@media only screen and (max-width: 800px) {
-  .cd-bg-video-wrapper { 
-  	background: url('../img/bangkok-city.jpg') #000 no-repeat center center fixed; 
-  	background-size: cover;
-  }
-  .cd-bg-video-wrapper video { display: none; }
-}
-
-@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
-     /* IE10+ CSS styles go here */
-     .cd-bg-video-wrapper { 
-	  	background: url('../img/bangkok-city.jpg') #000 no-repeat center center scroll; 
-	  	background-size: cover;
-	  }
-	  .cd-bg-video-wrapper video { display: none; }
-}
 

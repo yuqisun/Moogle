@@ -11,7 +11,7 @@ to the relevant moment in the video player.
 moogle/
 ├── streamlit_app.py              # Streamlit chat frontend (port 8501)
 ├── video_locator.py              # Core: text -> timestamp + BM25 search
-├── static_server.py              # Static file server with HTTP Range support (port 8502)
+├── static_server.py              # Static server (Starlette/uvicorn) with Range (port 8502)
 ├── smoke_test.py                 # AppTest headless regression test
 ├── run.ps1                       # Windows PowerShell one-click launcher
 ├── run.bat                       # Windows CMD one-click launcher
@@ -28,14 +28,14 @@ moogle/
 │   ├── eval_search.py            #   P@K / R@K / MRR metrics
 │   └── search_queries.json       #   Annotated test queries (ground truth)
 
-├── .venv/                        # Python 3.11.9 virtual environment (Streamlit)
+├── .venv/                        # Python 3.12 virtual environment (Streamlit)
 └── static/
     ├── video/                    # Video files (.mp4)
     ├── txt/                      # Transcript JSONs + analysis + KG results
     ├── subtitles/                # WebVTT subtitle files
     └── player/                   # Video player page (HTML/CSS/JS)
         ├── player.html           #   Player + About + Knowledge Graph tabs
-        └── css/ js/ img/ video/  #   Template assets
+        └── css/ js/ img/         #   Template assets
 ```
 
 ## Quick Start
@@ -62,7 +62,7 @@ cp .env.example .env
 **PowerShell:**
 
 ```powershell
-cd D:\workspace\moogle
+cd D:\work\Moogle
 
 # One-click launch (recommended)
 .\run.ps1
@@ -78,7 +78,7 @@ cd D:\workspace\moogle
 **CMD:**
 
 ```cmd
-cd /d D:\workspace\moogle
+cd /d D:\work\Moogle
 
 :: One-click launch (recommended)
 run.bat
@@ -123,12 +123,26 @@ Open **http://\<server-ip\>:8501** for the chat interface.
 > **Note:** `run.sh` / `run.ps1` automatically detect port conflicts before starting.
 > If a port is already in use, the script will report the occupying process and exit.
 
-Video player pages open at **http://\<host\>:8502/player/player.html?src=...&t=...**
+Video player links carry only *identity* plus a timestamp - never filesystem
+paths - so they stay short enough to share:
+
+```
+http://<host>:8502/moogle?s=<transcript-stem>&t=153.9
+```
+
+| param | meaning |
+|-------|---------|
+| `s` | transcript stem - the video filename and title are derived from it |
+| `v` | video filename, used only when the video has no transcript |
+| `x` | video extension, only when it is not `mp4` |
+| `t` | start time in seconds |
+
+Links in the older `src=` / `stem=` / `title=` / `cite=` form still work, and
+`/player/player.html` remains a valid alternative to `/moogle`.
 
 ## Tools Usage
 
-All tool scripts live in `tools/`. Transcription uses the Anaconda py39 environment
-(because it has torch + whisper installed); the rest use C:\Python311.
+All tool scripts live in `tools/` and use the same `.venv` environment as the app.
 
 ### 1. Transcribe a video
 
@@ -136,16 +150,16 @@ Convert video audio to timestamped transcript JSON using Whisper large-v3-turbo 
 
 ```powershell
 # Transcribe the default video in static/video/
-C:\ProgramData\Anaconda3\envs\py39\python.exe tools\transcribe_video.py
+.venv\Scripts\python.exe tools\transcribe_video.py
 
 # Transcribe a specific video
-C:\ProgramData\Anaconda3\envs\py39\python.exe tools\transcribe_video.py "static\video\xxx.mp4"
+.venv\Scripts\python.exe tools\transcribe_video.py "static\video\xxx.mp4"
 
 # Specify language (default: auto-detect)
-C:\ProgramData\Anaconda3\envs\py39\python.exe tools\transcribe_video.py "static\video\xxx.mp4" --language zh
+.venv\Scripts\python.exe tools\transcribe_video.py "static\video\xxx.mp4" --language zh
 
 # List existing transcripts
-C:\ProgramData\Anaconda3\envs\py39\python.exe tools\transcribe_video.py --list
+.venv\Scripts\python.exe tools\transcribe_video.py --list
 ```
 
 Output: `static/txt/<video_name>_en.json` (or without `_en` for non-English)
@@ -159,13 +173,13 @@ using the LLM configured in `.env`.
 
 ```powershell
 # Analyze all transcripts
-C:\Python311\python.exe tools\video_analyzer.py
+.venv\Scripts\python.exe tools\video_analyzer.py
 
 # Analyze one file
-C:\Python311\python.exe tools\video_analyzer.py "static\txt\xxx_en.json"
+.venv\Scripts\python.exe tools\video_analyzer.py "static\txt\xxx_en.json"
 
 # Force re-analyze (overwrite existing)
-C:\Python311\python.exe tools\video_analyzer.py --force
+.venv\Scripts\python.exe tools\video_analyzer.py --force
 ```
 
 Output: `static/txt/<video_name>_en_analysis.json`
@@ -182,13 +196,13 @@ Extract entity-relation-entity triples from the transcript using LLM.
 
 ```powershell
 # Extract from all transcripts
-C:\Python311\python.exe tools\kg_extractor.py
+.venv\Scripts\python.exe tools\kg_extractor.py
 
 # Extract from one file
-C:\Python311\python.exe tools\kg_extractor.py "static\txt\xxx_en.json"
+.venv\Scripts\python.exe tools\kg_extractor.py "static\txt\xxx_en.json"
 
 # Force re-extract
-C:\Python311\python.exe tools\kg_extractor.py --force
+.venv\Scripts\python.exe tools\kg_extractor.py --force
 ```
 
 Output: `static/txt/<video_name>_en_kg.json` (entities + triples)
@@ -209,10 +223,10 @@ Convert transcript JSON to WebVTT subtitle files for the video player.
 
 ```powershell
 # Generate for all transcripts
-C:\Python311\python.exe tools\subtitle_generator.py
+.venv\Scripts\python.exe tools\subtitle_generator.py
 
 # Generate for one file
-C:\Python311\python.exe tools\subtitle_generator.py "static\txt\xxx_en.json"
+.venv\Scripts\python.exe tools\subtitle_generator.py "static\txt\xxx_en.json"
 ```
 
 Output: `static/subtitles/<video_name>_en.vtt`
@@ -224,16 +238,16 @@ Toggle via the video player's native CC menu (three-dot menu -> Captions).
 
 ```powershell
 # Step 1: Transcribe
-C:\ProgramData\Anaconda3\envs\py39\python.exe tools\transcribe_video.py "static\video\new_video.mp4"
+.venv\Scripts\python.exe tools\transcribe_video.py "static\video\new_video.mp4"
 
 # Step 2: Generate subtitles
-C:\Python311\python.exe tools\subtitle_generator.py
+.venv\Scripts\python.exe tools\subtitle_generator.py
 
 # Step 3: Analyze with LLM (populates About page)
-C:\Python311\python.exe tools\video_analyzer.py
+.venv\Scripts\python.exe tools\video_analyzer.py
 
 # Step 4: Extract knowledge graph (populates Knowledge Graph page)
-C:\Python311\python.exe tools\kg_extractor.py
+.venv\Scripts\python.exe tools\kg_extractor.py
 ```
 
 ## Configuration (.env)

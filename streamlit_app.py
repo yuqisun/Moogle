@@ -48,7 +48,8 @@ STATIC_PORT = int(CFG.get("STATIC_PORT", "8502"))
 # Use a relative-style base so links work from any host (localhost or remote).
 # Streamlit serves on its own port; the static server is on STATIC_PORT.
 # We build the full URL at render time using the browser's current host.
-_PLAYER_PATH = f":{STATIC_PORT}/player/player.html"
+# Canonical player route; static_server.PLAYER_ROUTE must stay in sync.
+PLAYER_ROUTE = "/moogle"
 
 
 def _player_url(path_suffix: str = "") -> str:
@@ -63,10 +64,26 @@ def _player_url(path_suffix: str = "") -> str:
         if ctx and ctx.session_client:
             host_header = ctx.session_client.request.headers.get("Host", f"127.0.0.1:{STATIC_PORT}")
             hostname = host_header.split(":")[0]
-            return f"http://{hostname}:{STATIC_PORT}/player/player.html{path_suffix}"
+            return f"http://{hostname}:{STATIC_PORT}{PLAYER_ROUTE}{path_suffix}"
     except Exception:
         pass
-    return f"http://127.0.0.1:{STATIC_PORT}/player/player.html{path_suffix}"
+    return f"http://127.0.0.1:{STATIC_PORT}{PLAYER_ROUTE}{path_suffix}"
+
+
+def _player_link(**params: str) -> str:
+    """Build a player URL that carries only *identity*, never filesystem paths.
+
+    Keys mirror what static/player/player.html understands:
+        s  transcript stem (preferred — the video filename and title are derived from it)
+        v  video filename  (for a video that has no transcript)
+        x  video extension (only when it is not "mp4")
+        t  start time in seconds
+
+    Empty values are dropped.  urlencode() writes spaces as "+", which
+    URLSearchParams decodes back to a space — shorter than "%20" for sharing.
+    """
+    query = urllib.parse.urlencode({k: v for k, v in params.items() if v not in (None, "")})
+    return f"{_player_url()}?{query}"
 
 # ---------------------------------------------------------------- Page config
 st.set_page_config(page_title="Moogle - Video Content Locator", layout="wide")
@@ -218,15 +235,18 @@ with st.sidebar:
             dur = "?"
             segs = 0
 
-        video_abs = f"/video/{urllib.parse.quote(v.name)}"
-        # Pass the transcript stem so the player can locate subtitles/analysis/KG
-        # files correctly regardless of language suffix (_en, _zh, etc.)
-        tr_stem = ""
-        if tr_path:
-            tr_stem = Path(tr_path).stem
-        link = (f"{_player_url()}?src={video_abs}&t=0"
-                f"&title={urllib.parse.quote(v.stem)}"
-                f"&stem={urllib.parse.quote(tr_stem)}")
+        # Carry the transcript stem when there is one: the player derives both the
+        # video filename and the title from it, so the same filename is not
+        # repeated three times in a shared link.  A video with no transcript
+        # falls back to passing its filename.
+        tr_stem = Path(tr_path).stem if tr_path else ""
+        if tr_stem:
+            # The extension is not implied by the transcript stem, so spell it
+            # out only when it is not the mp4 default.
+            extra = {} if v.suffix.lower() == ".mp4" else {"x": v.suffix.lstrip(".")}
+            link = _player_link(s=tr_stem, t="0", **extra)
+        else:
+            link = _player_link(v=v.name, t="0")
         list_html += (
             f'<div style="padding:6px 0; border-bottom:1px solid rgba(128,128,128,0.2);">'
             f'<a href="{link}" target="_blank" style="text-decoration:none; color:inherit;">'
@@ -294,17 +314,11 @@ if question := st.chat_input("Ask a question about the video content..."):
             mins = int(r.start // 60)
             secs = int(r.start % 60)
             time_str = f"{mins:02d}:{secs:02d}"
-            video_abs = f"/video/{urllib.parse.quote(r.video_name + '.mp4')}"
-            cited = urllib.parse.quote(r.text[:200])
-            # Pass transcript stem for correct subtitle/analysis/KG file lookup
+            # Identity only: the transcript stem yields both the video filename
+            # and the title, so neither has to be repeated in the link.
             tr_stem = Path(r.transcript_path).stem if r.transcript_path else ""
-            link = (
-                f"{_player_url()}?src={video_abs}"
-                f"&t={r.start:.2f}"
-                f"&title={urllib.parse.quote(r.video_name)}"
-                f"&cite={cited}"
-                f"&stem={urllib.parse.quote(tr_stem)}"
-            )
+            identity = {"s": tr_stem} if tr_stem else {"v": r.video_name + ".mp4"}
+            link = _player_link(**{**identity, "t": f"{r.start:.2f}"})
             score_pct = int(r.score * 100)
             src_label = f" ({r.video_name})" if r.video_name else ""
             cite_lines.append(
