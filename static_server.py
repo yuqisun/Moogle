@@ -15,6 +15,8 @@ Usage (same CLI as the previous stdlib implementation):
 from __future__ import annotations
 
 import argparse
+import time
+from datetime import datetime
 from pathlib import Path
 
 import uvicorn
@@ -37,6 +39,68 @@ DEFAULT_DIRECTORY = REPO / "static"
 PLAYER_ROUTE = "/moogle"
 
 
+class AccessLogMiddleware:
+    """Lightweight ASGI access logger — no body buffering, safe for large files.
+
+    Prints one line per completed request::
+
+        HH:MM:SS  192.168.1.5     GET  206      0.5ms  /video/x.mp4  bytes=0-524287  524288B
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        client = scope.get("client")
+        client_ip = client[0] if client else "-"
+        method = scope.get("method", "")
+        path = scope.get("path", "")
+        qs = scope.get("query_string", b"").decode("latin-1")
+        url = path + (f"?{qs}" if qs else "")
+
+        # Extract Range header from the request (useful for video playback)
+        range_hdr = ""
+        for hdr_name, hdr_value in scope.get("headers", []):
+            if hdr_name == b"range":
+                range_hdr = hdr_value.decode("latin-1")
+                break
+
+        status_code = 0
+        content_length = ""
+        start = time.monotonic()
+
+        async def send_wrapper(message):
+            nonlocal status_code, content_length
+            if message["type"] == "http.response.start":
+                status_code = message.get("status", 0)
+                for hdr_name, hdr_value in message.get("headers", []):
+                    if hdr_name == b"content-length":
+                        content_length = hdr_value.decode("latin-1")
+                        break
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            elapsed_ms = (time.monotonic() - start) * 1000
+            ts = datetime.now().strftime("%H:%M:%S")
+            extras = []
+            if range_hdr:
+                extras.append(range_hdr)
+            if content_length:
+                extras.append(f"{content_length}B")
+            extra_str = ("  " + "  ".join(extras)) if extras else ""
+            print(
+                f"{ts}  {client_ip:<15} {method:<4} {status_code}  "
+                f"{elapsed_ms:>7.1f}ms  {url}{extra_str}",
+                flush=True,
+            )
+
+
 def build_app(directory: Path) -> Starlette:
     """Return an ASGI app that serves *directory* at the URL root."""
     player_page = directory / "player" / "player.html"
@@ -47,7 +111,7 @@ def build_app(directory: Path) -> Starlette:
     async def serve_player(request) -> FileResponse:
         return FileResponse(player_page)
 
-    return Starlette(
+    return AccessLogMiddleware(Starlette(
         routes=[
             Route(PLAYER_ROUTE, serve_player),
             # Also accept a stray trailing slash.  The Mount below would
@@ -55,7 +119,7 @@ def build_app(directory: Path) -> Starlette:
             Route(f"{PLAYER_ROUTE}/", serve_player),
             Mount("/", app=StaticFiles(directory=str(directory), check_dir=True)),
         ]
-    )
+    ))
 
 
 def main() -> None:
@@ -77,7 +141,7 @@ def main() -> None:
 
     host = args.bind or "0.0.0.0"
     print(f"Serving {directory} on http://{host}:{args.port} (Range requests enabled)", flush=True)
-    uvicorn.run(build_app(directory), host=host, port=args.port)
+    uvicorn.run(build_app(directory), host=host, port=args.port, access_log=False)
 
 
 if __name__ == "__main__":
