@@ -59,7 +59,7 @@
             + '</div>'
             + '<div class="moogle-chat-messages" id="moogleChatMessages"></div>'
             + '<div class="moogle-chat-input-area">'
-            +   '<input type="text" class="moogle-chat-input" id="moogleChatInput" placeholder="Ask about the subtitles..." autocomplete="off">'
+            +   '<input type="text" class="moogle-chat-input" id="moogleChatInput" placeholder="Ask about this video..." autocomplete="off">'
             +   '<button class="moogle-chat-send" id="moogleChatSend">➤</button>'
             + '</div>';
 
