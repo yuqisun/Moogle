@@ -161,8 +161,17 @@ def build_app(directory: Path) -> Starlette:
                 status_code=400,
             )
 
+        question = question.strip()
+        stem = stem.strip()
+        if len(question) > 2000:
+            return JSONResponse({"error": "Question too long (max 2000 chars)"}, status_code=400)
+        if len(stem) > 500:
+            return JSONResponse({"error": "Stem too long (max 500 chars)"}, status_code=400)
+
         # --- Load subtitle JSON ------------------------------------------------
-        sub_path = txt_dir / f"{stem}.json"
+        sub_path = (txt_dir / f"{stem}.json").resolve()
+        if not str(sub_path).startswith(str(txt_dir.resolve())):
+            return JSONResponse({"error": "Invalid stem"}, status_code=400)
         if not sub_path.is_file():
             return JSONResponse(
                 {"error": f"Subtitle file not found: {stem}.json"},
@@ -172,8 +181,9 @@ def build_app(directory: Path) -> Starlette:
         try:
             sub_data = json.loads(sub_path.read_text(encoding="utf-8"))
         except Exception as exc:
+            print(f"ERROR reading subtitle file {sub_path}: {exc}", flush=True)
             return JSONResponse(
-                {"error": f"Failed to read subtitle file: {exc}"},
+                {"error": "Failed to read subtitle file"},
                 status_code=500,
             )
 
@@ -184,7 +194,7 @@ def build_app(directory: Path) -> Starlette:
         for seg in segments:
             start = seg.get("start", 0)
             text = seg.get("text", "").strip()
-            transcript_lines.append(f"[{start}s] {text}")
+            transcript_lines.append(f"[ts:{start}] {text}")
         transcript_block = "\n".join(transcript_lines)
 
         prompt = (
