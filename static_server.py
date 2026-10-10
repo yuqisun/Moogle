@@ -15,13 +15,16 @@ Usage (same CLI as the previous stdlib implementation):
 from __future__ import annotations
 
 import argparse
+import json
 import time
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
 import uvicorn
 from starlette.applications import Starlette
-from starlette.responses import FileResponse
+from starlette.requests import Request
+from starlette.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -37,6 +40,29 @@ DEFAULT_DIRECTORY = REPO / "static"
 # sync with this.  The legacy /player/player.html keeps working — the
 # StaticFiles mount below still serves it.
 PLAYER_ROUTE = "/moogle"
+
+
+# ---------------------------------------------------------------- .env config
+
+def _load_env(env_path: Path = REPO / ".env") -> dict[str, str]:
+    """Minimal .env parser (KEY=VALUE, skip comments and blanks)."""
+    config: dict[str, str] = {}
+    if not env_path.exists():
+        return config
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            key, _, value = line.partition("=")
+            config[key.strip()] = value.strip().strip('"').strip("'")
+    return config
+
+
+_ENV = _load_env()
+_LLM_API_KEY = _ENV.get("LLM_API_KEY", "")
+_LLM_API_BASE = _ENV.get("LLM_API_BASE", "https://api.deepseek.com/v1")
+_LLM_MODEL = _ENV.get("LLM_MODEL", "deepseek-chat")
 
 
 class AccessLogMiddleware:
@@ -108,8 +134,132 @@ def build_app(directory: Path) -> Starlette:
         # Fail loudly at startup rather than 500 on the first visit.
         raise RuntimeError(f"Player page not found: {player_page}")
 
+    txt_dir = directory / "txt"
+
     async def serve_player(request) -> FileResponse:
         return FileResponse(player_page)
+
+    # ------------------------------------------------------------------ /api/chat
+
+    async def chat_api(request: Request):
+        """POST /api/chat — answer a question about a video's subtitles via SSE.
+
+        Body: ``{"question": "...", "stem": "..."}``
+        Streams ``text/event-stream`` with ``data: {"content": "..."}`` chunks.
+        """
+        # --- Parse & validate body -------------------------------------------
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON body"}, status_code=400)
+
+        question = body.get("question") if isinstance(body, dict) else None
+        stem = body.get("stem") if isinstance(body, dict) else None
+        if not question or not stem:
+            return JSONResponse(
+                {"error": "Both 'question' and 'stem' fields are required"},
+                status_code=400,
+            )
+
+        # --- Load subtitle JSON ------------------------------------------------
+        sub_path = txt_dir / f"{stem}.json"
+        if not sub_path.is_file():
+            return JSONResponse(
+                {"error": f"Subtitle file not found: {stem}.json"},
+                status_code=404,
+            )
+
+        try:
+            sub_data = json.loads(sub_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            return JSONResponse(
+                {"error": f"Failed to read subtitle file: {exc}"},
+                status_code=500,
+            )
+
+        segments = sub_data.get("segments", [])
+
+        # --- Build prompt with segment timestamps -----------------------------
+        transcript_lines = []
+        for seg in segments:
+            start = seg.get("start", 0)
+            text = seg.get("text", "").strip()
+            transcript_lines.append(f"[{start}s] {text}")
+        transcript_block = "\n".join(transcript_lines)
+
+        prompt = (
+            f"User question: {question}\n\n"
+            "The following is the complete subtitle transcript of the current video, "
+            "with timestamps for each segment:\n\n"
+            f"{transcript_block}\n\n"
+            "Please answer the user's question based on this transcript. "
+            "When referencing specific content, insert timestamp markers in the exact "
+            "format [ts:SECONDS] where SECONDS is the numeric start time from the "
+            "segments above. You may include multiple [ts:...] markers when citing "
+            "different parts. Reply in the same language as the question. Be concise."
+        )
+
+        # --- No API key fallback ----------------------------------------------
+        if not _LLM_API_KEY:
+            async def fallback_gen():
+                msg = "LLM API key is not configured. Please set LLM_API_KEY in .env to enable AI chat."
+                yield f"data: {json.dumps({'content': msg})}\n\n"
+                yield "data: [DONE]\n\n"
+            return StreamingResponse(
+                fallback_gen(),
+                media_type="text/event-stream",
+                headers={"Access-Control-Allow-Origin": "*"},
+            )
+
+        # --- SSE streaming generator (sync — Starlette runs it in threadpool) -
+        def sse_generator():
+            payload = json.dumps({
+                "model": _LLM_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 1024,
+                "stream": True,
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                f"{_LLM_API_BASE.rstrip('/')}/chat/completions",
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {_LLM_API_KEY}",
+                },
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    for raw_line in resp:
+                        line = raw_line.decode("utf-8").strip()
+                        if not line:
+                            continue
+                        if line.startswith("data: "):
+                            data_str = line[6:]
+                            if data_str == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(data_str)
+                                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    yield f"data: {json.dumps({'content': content})}\n\n"
+                            except json.JSONDecodeError:
+                                continue
+            except Exception as exc:
+                err_msg = f"LLM call failed: {exc}"
+                yield f"data: {json.dumps({'content': err_msg})}\n\n"
+
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            sse_generator(),
+            media_type="text/event-stream",
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
+
+    # ---------------------------------------------------------------- routes
 
     return AccessLogMiddleware(Starlette(
         routes=[
@@ -117,6 +267,7 @@ def build_app(directory: Path) -> Starlette:
             # Also accept a stray trailing slash.  The Mount below would
             # otherwise catch "/moogle/" and look for a directory of that name.
             Route(f"{PLAYER_ROUTE}/", serve_player),
+            Route("/api/chat", chat_api, methods=["POST"]),
             Mount("/", app=StaticFiles(directory=str(directory), check_dir=True)),
         ]
     ))
