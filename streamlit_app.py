@@ -39,7 +39,12 @@ def load_env(env_path: Path = REPO / ".env") -> dict[str, str]:
 
 CFG = load_env()
 SEARCH_TOP_K = int(CFG.get("SEARCH_TOP_K", "10"))
-SEARCH_MIN_SCORE = float(CFG.get("SEARCH_MIN_SCORE", "0.3"))
+# Default 0.0 = no filtering. A non-zero default used to trim results before the
+# user saw them: measured on tests/search_queries.json it dropped 14 relevant
+# segments, cut recall@10 from 0.50 to 0.38 and left MRR unchanged (0.80 -> 0.79),
+# i.e. it cost recall without improving the top result. See tests/eval_search.py
+# --min-score to reproduce. Users can still raise the slider at runtime.
+SEARCH_MIN_SCORE = float(CFG.get("SEARCH_MIN_SCORE", "0.0"))
 LLM_API_KEY = CFG.get("LLM_API_KEY", "")
 LLM_API_BASE = CFG.get("LLM_API_BASE", "https://api.deepseek.com/v1")
 LLM_MODEL = CFG.get("LLM_MODEL", "deepseek-chat")
@@ -267,7 +272,7 @@ with st.sidebar:
     st.divider()
 
     # Dynamic search config
-    st.session_state["search_min_score"] = st.slider("Min relevance score", 0.0, 1.0, float(CFG.get("SEARCH_MIN_SCORE", "0.3")), 0.05)
+    st.session_state["search_min_score"] = st.slider("Min relevance score", 0.0, 1.0, float(CFG.get("SEARCH_MIN_SCORE", "0.0")), 0.05)
     st.session_state["search_top_k"] = st.slider("Max results", 1, 20, int(CFG.get("SEARCH_TOP_K", "10")))
 
     if LLM_API_KEY:

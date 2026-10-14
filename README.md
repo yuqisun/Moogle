@@ -255,7 +255,7 @@ Toggle via the video player's native CC menu (three-dot menu -> Captions).
 ```ini
 # Search parameters (also adjustable via sidebar sliders at runtime)
 SEARCH_TOP_K=10          # Maximum results to return
-SEARCH_MIN_SCORE=0.3     # Minimum relevance score (0~1)
+SEARCH_MIN_SCORE=0.0     # Minimum relevance score (0~1); 0.0 = no filtering (recommended)
 
 # LLM (any OpenAI-compatible API)
 LLM_API_KEY=             # Leave empty for template replies (no API call)
@@ -285,7 +285,14 @@ NEO4J_PASSWORD=
 Quality is measured by `tests/eval_search.py` (18 annotated queries):
 ```powershell
 .venv\Scripts\python.exe tests\eval_search.py --top-k 10
+
+# Evaluate the configuration the app actually runs with
+.venv\Scripts\python.exe tests\eval_search.py --top-k 10 --min-score 0.0
 ```
+
+`P@K` always divides by K, even when fewer than K results come back, so trimming
+results can never inflate precision. The `n` column reports how many results the
+search actually returned per query.
 
 ## Timestamp Locator
 

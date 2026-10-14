@@ -1,10 +1,18 @@
 """Evaluate search quality: Precision@K, Recall@K, MRR, timestamp accuracy.
 
 Usage:
-    python tests/eval_search.py              # evaluate current algorithm
-    python tests/eval_search.py --top-k 5    # evaluate at K=5 (default 10)
+    python tests/eval_search.py                    # evaluate current algorithm
+    python tests/eval_search.py --top-k 5          # evaluate at K=5 (default 10)
+    python tests/eval_search.py --min-score 0.3    # evaluate the app's real filter
 
 Reads tests/search_queries.json for ground truth, runs the search, computes metrics.
+
+Precision@K always divides by K, even when the search returned fewer than K results.
+An earlier version divided by ``min(top_k, len(results))``, which made precision rise
+mechanically whenever a score threshold trimmed the result list -- a change that in
+fact lowered precision looked like a large improvement. Pass ``--min-score`` to
+reproduce the configuration the app actually runs with; ``SEARCH_MIN_SCORE`` in
+``.env`` defaults to 0.0 (no filtering).
 """
 from __future__ import annotations
 
@@ -22,7 +30,7 @@ def load_test_queries(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def evaluate(top_k: int = 10) -> None:
+def evaluate(top_k: int = 10, min_score: float = 0.0) -> None:
     queries_path = REPO / "tests" / "search_queries.json"
     test_queries = load_test_queries(queries_path)
 
@@ -34,14 +42,15 @@ def evaluate(top_k: int = 10) -> None:
 
     tr = vl.Transcript.load(transcript_path)
     print(f"Transcript: {tr.path.name} ({len(tr.segments)} segments, {tr.duration:.1f}s)")
-    print(f"Evaluating {len(test_queries)} queries at top-{top_k}\n")
+    print(f"Evaluating {len(test_queries)} queries at top-{top_k}, min_score={min_score}\n")
 
     all_precision = []
     all_recall = []
     all_rr = []  # reciprocal rank
     all_ts_error = []
+    all_returned = []  # how many results survived the threshold
 
-    header = f"{'Query':<50} | {'P@K':>5} | {'R@K':>5} | {'MRR':>5} | {'AvgΔt':>6}"
+    header = f"{'Query':<50} | {'P@K':>5} | {'R@K':>5} | {'MRR':>5} | {'n':>3} | {'AvgΔt':>6}"
     print(header)
     print("-" * len(header))
 
@@ -51,15 +60,15 @@ def evaluate(top_k: int = 10) -> None:
         n_relevant = len(relevant)
 
         # Run search on this single transcript
-        results = tr.scored_search(query, top_k=top_k, min_score=0.0)
+        results = tr.scored_search(query, top_k=top_k, min_score=min_score)
 
         # Compute metrics
         retrieved_indices = [r.segment_index for r in results[:top_k]]
         retrieved_set = set(retrieved_indices)
 
-        # Precision@K
+        # Precision@K -- denominator is always K, never the (shorter) result list
         hits = len(retrieved_set & relevant)
-        precision = hits / min(top_k, len(results)) if results else 0.0
+        precision = hits / top_k
 
         # Recall@K
         recall = hits / n_relevant if n_relevant > 0 else 0.0
@@ -84,32 +93,38 @@ def evaluate(top_k: int = 10) -> None:
         all_precision.append(precision)
         all_recall.append(recall)
         all_rr.append(rr)
+        all_returned.append(len(results))
         if ts_errors:
             all_ts_error.extend(ts_errors)
 
         # Display (truncate query for display)
         q_display = query[:48] + ".." if len(query) > 48 else query
         ts_str = f"{avg_ts_error:5.1f}s" if ts_errors else "   N/A"
-        print(f"{q_display:<50} | {precision:5.2f} | {recall:5.2f} | {rr:5.2f} | {ts_str}")
+        print(f"{q_display:<50} | {precision:5.2f} | {recall:5.2f} | {rr:5.2f} | "
+              f"{len(results):3d} | {ts_str}")
 
     # Averages
     avg_p = sum(all_precision) / len(all_precision) if all_precision else 0
     avg_r = sum(all_recall) / len(all_recall) if all_recall else 0
     avg_mrr = sum(all_rr) / len(all_rr) if all_rr else 0
     avg_ts = sum(all_ts_error) / len(all_ts_error) if all_ts_error else float("nan")
+    avg_n = sum(all_returned) / len(all_returned) if all_returned else 0
 
     print("-" * len(header))
     ts_avg_str = f"{avg_ts:5.1f}s" if all_ts_error else "   N/A"
-    print(f"{'AVERAGE':<50} | {avg_p:5.2f} | {avg_r:5.2f} | {avg_mrr:5.2f} | {ts_avg_str}")
+    print(f"{'AVERAGE':<50} | {avg_p:5.2f} | {avg_r:5.2f} | {avg_mrr:5.2f} | "
+          f"{avg_n:3.1f} | {ts_avg_str}")
     print()
 
     # Also output machine-readable summary
     summary = {
         "top_k": top_k,
+        "min_score": min_score,
         "num_queries": len(test_queries),
         "avg_precision": round(avg_p, 4),
         "avg_recall": round(avg_r, 4),
         "avg_mrr": round(avg_mrr, 4),
+        "avg_results_returned": round(avg_n, 2),
         "avg_timestamp_error_s": round(avg_ts, 2) if all_ts_error else None,
     }
     print(f"JSON: {json.dumps(summary)}")
@@ -126,6 +141,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Evaluate search quality")
     parser.add_argument("--top-k", type=int, default=10, help="Evaluate at top-K (default 10)")
+    parser.add_argument(
+        "--min-score",
+        type=float,
+        default=0.0,
+        help="Minimum score filter to apply, mirroring SEARCH_MIN_SCORE (default 0.0)",
+    )
     args = parser.parse_args()
 
-    evaluate(top_k=args.top_k)
+    evaluate(top_k=args.top_k, min_score=args.min_score)
